@@ -1,3 +1,4 @@
+#[derive(Clone)]
 pub struct Transform {
     pub matrix: [[f32; 4]; 4],
 }
@@ -172,5 +173,24 @@ impl Transform {
         }
 
         Self::from_matrix(transposed)
+    }
+}
+
+impl std::ops::Mul<Transform> for Transform {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self {
+        let mut result: [[f32; 4]; 4] = [[0.0; 4]; 4];
+
+        for (x, row) in result.iter_mut().enumerate() {
+            for (y, element) in row.iter_mut().enumerate() {
+                *element = self.matrix[x][0] * rhs.matrix[0][y]
+                    + self.matrix[x][1] * rhs.matrix[1][y]
+                    + self.matrix[x][2] * rhs.matrix[2][y]
+                    + self.matrix[x][3] * rhs.matrix[3][y];
+            }
+        }
+        
+        Self { matrix: result }
     }
 }

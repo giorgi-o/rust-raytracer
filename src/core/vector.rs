@@ -1,5 +1,6 @@
 use super::{transform::Transform, vertex::Vertex};
 
+#[derive(Debug, Copy, Clone)]
 pub struct Vector {
     pub x: f32,
     pub y: f32,
@@ -7,11 +8,11 @@ pub struct Vector {
 }
 
 impl Vector {
-    pub fn new(x: f32, y: f32, z: f32) -> Self {
+    pub const fn new(x: f32, y: f32, z: f32) -> Self {
         Self { x, y, z }
     }
 
-    pub fn zero() -> Self {
+    pub const fn zero() -> Self {
         Self {
             x: 0.0,
             y: 0.0,
@@ -153,6 +154,18 @@ impl std::ops::Mul<f32> for Vector {
     }
 }
 
+impl std::ops::Mul<f64> for Vector {
+    type Output = Vector;
+
+    fn mul(self, rhs: f64) -> Self::Output {
+        Self {
+            x: self.x * rhs as f32,
+            y: self.y * rhs as f32,
+            z: self.z * rhs as f32,
+        }
+    }
+}
+
 impl std::ops::Neg for Vector {
     type Output = Vector;
 
@@ -161,6 +174,16 @@ impl std::ops::Neg for Vector {
             x: -self.x,
             y: -self.y,
             z: -self.z,
+        }
+    }
+}
+
+impl std::ops::AddAssign<Vector> for Vector {
+    fn add_assign(&mut self, rhs: Vector) {
+        *self = Self {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+            z: self.z + rhs.z,
         }
     }
 }

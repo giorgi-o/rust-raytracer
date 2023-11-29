@@ -1,6 +1,6 @@
 use std::{
     fs::File,
-    io::{BufWriter, Write},
+    io::{BufWriter, Write}, path::PathBuf,
 };
 
 use super::colour::Colour;
@@ -14,7 +14,7 @@ struct Pixel {
 impl Pixel {
     pub fn new(red: f32, green: f32, blue: f32, depth: f32) -> Self {
         Self {
-            colour: Colour::new_rgb(red, green, blue),
+            colour: Colour::new(red, green, blue),
             depth,
         }
     }
@@ -27,13 +27,13 @@ impl Pixel {
     }
 }
 
-pub struct Framebuffer {
+pub struct FrameBuffer {
     pub width: u32,
     pub height: u32,
     pixels: Vec<Pixel>,
 }
 
-impl Framebuffer {
+impl FrameBuffer {
     pub fn new(width: u32, height: u32) -> Self {
         if width >= 2048 || height >= 2048 {
             panic!("Invalid framebuffer size");
@@ -93,9 +93,7 @@ impl Framebuffer {
         self.pixels[index].colour
     }
 
-    pub fn write_rgb_file(&self, filename: String) {
-        assert!(filename.ends_with(".ppm"));
-
+    pub fn write_rgb_file(&self, filename: &PathBuf) {
         let outfile = File::create(filename).unwrap();
         let mut writer = BufWriter::new(outfile);
 
@@ -114,9 +112,7 @@ impl Framebuffer {
         writer.flush().unwrap();
     }
 
-    pub fn write_depth_file(&self, filename: String) {
-        assert!(filename.ends_with(".pgm"));
-
+    pub fn write_depth_file(&self, filename: &PathBuf) {
         let outfile = File::create(filename).unwrap();
         let mut writer = BufWriter::new(outfile);
 
