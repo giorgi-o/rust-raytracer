@@ -20,6 +20,7 @@ pub enum CsgAction {
     BExit,  // ray exits B
     BDrop,  // ray is dropped by B
 }
+use CsgAction::*;
 
 pub struct Csg {
     pub mode: CsgMode,
@@ -39,40 +40,10 @@ impl Csg {
 
 impl Object for Csg {
     fn intersect(&self, ray: &Ray) -> HitVec {
-        /* 	const CSG::Action actions[3][8] = { {CSG::CSG_ADROP, CSG_BDROP,CSG_AEXIT,CSG_BDROP,CSG_ADROP,CSG_BEXIT,CSG_AENTER,CSG_BENTER},
-            {CSG::CSG_AEXIT, CSG_BEXIT,CSG_ADROP,CSG_BENTER,CSG_AENTER,CSG_BDROP,CSG_ADROP,CSG_BDROP},
-        {CSG::CSG_ADROP, CSG_BENTER,CSG_AEXIT,CSG_BEXIT,CSG_ADROP,CSG_BDROP,CSG_AENTER,CSG_BDROP} }; */
         let actions = match self.mode {
-            CsgMode::Union => [
-                CsgAction::ADrop,
-                CsgAction::BDrop,
-                CsgAction::AExit,
-                CsgAction::BDrop,
-                CsgAction::ADrop,
-                CsgAction::BExit,
-                CsgAction::AEnter,
-                CsgAction::BEnter,
-            ],
-            CsgMode::Intersection => [
-                CsgAction::AExit,
-                CsgAction::BExit,
-                CsgAction::ADrop,
-                CsgAction::BEnter,
-                CsgAction::AEnter,
-                CsgAction::BDrop,
-                CsgAction::ADrop,
-                CsgAction::BDrop,
-            ],
-            CsgMode::Difference => [
-                CsgAction::ADrop,
-                CsgAction::BEnter,
-                CsgAction::AExit,
-                CsgAction::BExit,
-                CsgAction::ADrop,
-                CsgAction::BDrop,
-                CsgAction::AEnter,
-                CsgAction::BDrop,
-            ],
+            CsgMode::Union => [ADrop, BDrop, AExit, BDrop, ADrop, BExit, AEnter, BEnter],
+            CsgMode::Intersection => [AExit, BExit, ADrop, BEnter, AEnter, BDrop, ADrop, BDrop],
+            CsgMode::Difference => [ADrop, BEnter, AExit, BExit, ADrop, BDrop, AEnter, BDrop],
         };
 
         let mut left_hits = self.left.intersect(ray).into_iter().peekable();
@@ -100,20 +71,20 @@ impl Object for Csg {
             }
 
             match actions[state] {
-                CsgAction::AEnter | CsgAction::AExit => {
+                AEnter | AExit => {
                     let mut left_hit = left_hits.next().unwrap();
-                    left_hit.entering = actions[state] == CsgAction::AEnter;
+                    left_hit.entering = actions[state] == AEnter;
                     hit_vec.push(left_hit);
                 }
-                CsgAction::ADrop => {
+                ADrop => {
                     left_hits.next();
                 }
-                CsgAction::BEnter | CsgAction::BExit => {
+                BEnter | BExit => {
                     let mut right_hit = right_hits.next().unwrap();
-                    right_hit.entering = actions[state] == CsgAction::BEnter;
+                    right_hit.entering = actions[state] == BEnter;
                     hit_vec.push(right_hit);
                 }
-                CsgAction::BDrop => {
+                BDrop => {
                     right_hits.next();
                 }
             }

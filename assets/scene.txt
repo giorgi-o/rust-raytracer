@@ -10,11 +10,11 @@ light Directional
 
 # floor
 object Plane
-    point 0.0 0.0 0.0
-    normal 0.0 1.0 0.0
-    material Simple
-        colour White
-        reflectiveness 0.0
+   point 0.0 0.0 0.0
+   normal 0.0 1.0 0.0
+   material Simple
+       colour White
+       reflectiveness 0.0
 
 # back wall
 object Plane
@@ -59,15 +59,16 @@ object Cuboid
 
 # sphere
 object Sphere
-    centre 1.0 1.0 4.0
-    radius 1.0
-    material Global
-        reflect 1.0
-        refract 1.0
-        ior 2.4
+   centre 1.0 1.0 4.0
+   radius 1.0
+   material Global
+       reflect 1.0
+       refract 1.0
+       ior 2.4
+
 
 # cube
-object Sphere
+object Cuboid
     corner -0.5 0.0 6.0
     size 2.0 1.0 1.0
     material Phong
@@ -75,5 +76,3 @@ object Sphere
         diffuse 0.0 0.5 0.5
         specular 0.0
         shininess 100.0
-
-        

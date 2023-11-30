@@ -20,12 +20,12 @@ impl Scene {
         }
     }
 
-    pub fn add_object(&mut self, object: impl Object + 'static) {
-        self.objects.push(Box::new(object));
+    pub fn add_object(&mut self, object: Box<dyn Object + 'static>) {
+        self.objects.push(object);
     }
 
-    pub fn add_light(&mut self, light: impl Light + 'static) {
-        self.lights.push(Box::new(light));
+    pub fn add_light(&mut self, light: Box<dyn Light + 'static>) {
+        self.lights.push(light);
     }
 
     pub fn select_first_hit<'s>(&self, hits: HitVec<'s>) -> Option<Hit<'s>> {

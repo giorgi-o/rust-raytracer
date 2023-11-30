@@ -1,20 +1,14 @@
 #![allow(dead_code)]
 
-use std::sync::Arc;
 use std::{path::PathBuf, process::Command};
 
 use core::scene::Scene;
-use materials::compound_material::CompoundMaterial;
-use materials::global_material::GlobalMaterial;
-use materials::phong_material::Phong;
-use objects::cuboid_object::Cuboid;
-use objects::plane_object::Plane;
 
-use crate::objects::sphere_object::Sphere;
+use scene_file::{ParseError, SceneFile};
+
 use crate::{
     cameras::{camera::Camera, full_camera::FullCamera},
-    core::{colour::Colour, vector::Vector, vertex::Vertex},
-    lights::directional_light::DirectionalLight,
+    core::{vector::Vector, vertex::Vertex},
 };
 
 mod core {
@@ -41,6 +35,7 @@ mod materials {
     pub mod global_material;
     pub mod material;
     pub mod phong_material;
+    pub mod texture_material;
 }
 
 mod lights {
@@ -49,14 +44,14 @@ mod lights {
 }
 
 mod objects {
+    pub mod csg_object;
     pub mod cuboid_object;
     pub mod object;
     pub mod plane_object;
     pub mod polymesh_object;
+    pub mod quadratic_object;
     pub mod sphere_object;
     pub mod triangle_object;
-    pub mod csg_object;
-    pub mod quadratic_object;
 }
 
 mod scene_file;
@@ -69,96 +64,46 @@ fn parse_path(path: &str) -> PathBuf {
     parsed
 }
 
-fn build_scene() -> Scene {
-    let mut scene = Scene::new();
+fn main() {
+    // when assets/scene.txt changes, re-render
+    let get_last_modified = || {
+        std::fs::metadata("assets/scene.txt")
+            .expect("Failed to get metadata for assets/scene.txt")
+            .modified()
+            .expect("Failed to get modified time for assets/scene.txt")
+    };
 
-    let floor = Plane::new_from_point(
-        &Vertex::new_xyz(0.0, 0.0, 0.0),
-        &Vector::new(0.0, 1.0, 0.0),
-        CompoundMaterial::new_simple(Colour::white(), 0.0),
-    );
-    scene.add_object(floor);
+    loop {
+        render();
+        println!("Waiting for changes to assets/scene.txt...");
 
-    let back_wall = Plane::new_from_point(
-        &Vertex::new_xyz(0.0, 0.0, 15.0),
-        &Vector::new(0.0, 0.0, -1.0),
-        CompoundMaterial::new_simple(Colour::new(0.5, 0.0, 0.0), 0.0),
-    );
-    scene.add_object(back_wall);
+        let last_modified = get_last_modified();
 
-    let left_wall = Plane::new_from_point(
-        &Vertex::new_xyz(-5.0, 0.0, 0.0),
-        &Vector::new(1.0, 0.0, 0.0),
-        CompoundMaterial::new_simple(Colour::new(0.0, 0.5, 0.0), 0.0),
-    );
-    scene.add_object(left_wall);
+        loop {
+            std::thread::sleep(std::time::Duration::from_millis(50));
 
-    let right_wall = Plane::new_from_point(
-        &Vertex::new_xyz(10.0, 0.0, 0.0),
-        &Vector::new(-1.0, 0.0, 0.0),
-        CompoundMaterial::new_simple(Colour::new(0.0, 0.0, 0.5), 0.0),
-    );
-    // scene.add_object(right_wall);
-
-    // LEFT
-
-    let sphere1 = Sphere::new(
-        Vertex::new_xyz(-2.0, 1.5, 5.0),
-        1.0,
-        CompoundMaterial::new_simple(Colour::new(1.0, 0.5, 0.0), 0.3),
-    );
-    scene.add_object(sphere1);
-
-    let cube = Cuboid::new(
-        Vertex::new_xyz(-1.3, 0.0, 3.0),
-        Vector::new(0.7, 0.7, 0.7),
-        // Arc::new(GlobalMaterial::new(
-        //     Colour::black(),
-        //     Colour::white(),
-        //     1.0,
-        // )),
-        CompoundMaterial::new_transparent(Colour::new(1.0, 1.0, 0.0), 0.9, 1.2),
-    );
-    scene.add_object(cube);
-
-    // RIGHT
-
-    let sphere2 = Sphere::new(
-        Vertex::new_xyz(1.0, 1.0, 4.0),
-        1.0,
-        // CompoundMaterial::new_simple(Colour::new(0.0, 1.0, 1.0), 1.0),
-        // CompoundMaterial::new_transparent(Colour::new(0.0, 1.0, 1.0), 0.9, 1.2),
-        GlobalMaterial::new(Colour::new(1.0, 1.0, 1.0), Colour::white(), 2.4),
-    );
-    scene.add_object(sphere2);
-
-    let cube2 = Cuboid::new(
-        Vertex::new_xyz(-0.5, 0.0, 6.0),
-        Vector::new(2.0, 1.0, 1.0),
-        Phong::new(
-            Colour::black(),
-            Colour::new(0.0, 0.5, 0.5),
-            Colour::black(),
-            100.0,
-        ),
-    );
-    scene.add_object(cube2);
-
-    let sun_direction = Vector::new(-1.0, -0.9, 1.0);
-    let sun_colour = Colour::white();
-    let sun = DirectionalLight::new(sun_direction, sun_colour);
-    scene.add_light(sun);
-
-    scene
+            if get_last_modified() > last_modified {
+                break;
+            }
+        }
+    }
 }
 
-fn main() {
-    println!("Hello, world!");
+fn build_scene() -> Result<Scene, ParseError> {
+    SceneFile::from_path(&parse_path("assets/scene.txt"))
+}
 
+fn render() {
     let width = 1024;
     let height = 1024;
 
-    let scene = build_scene();
+    let scene = match build_scene() {
+        Ok(scene) => scene,
+        Err(e) => {
+            println!("Failed to build scene! {:?}", e);
+            return;
+        }
+    };
 
     // "default" camera position
     let position = Vertex::new_xyz(0.0, 3.0, 0.0);

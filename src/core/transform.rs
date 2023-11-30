@@ -1,3 +1,5 @@
+use super::vector::Vector;
+
 #[derive(Clone)]
 pub struct Transform {
     pub matrix: [[f32; 4]; 4],
@@ -25,6 +27,17 @@ impl Transform {
                 [matrix[0][0], matrix[0][1], matrix[0][2], 0.0],
                 [matrix[1][0], matrix[1][1], matrix[1][2], 0.0],
                 [matrix[2][0], matrix[2][1], matrix[2][2], 0.0],
+                [0.0, 0.0, 0.0, 1.0],
+            ],
+        }
+    }
+
+    pub fn from_translation(translation: Vector) -> Self {
+        Self {
+            matrix: [
+                [1.0, 0.0, 0.0, translation.x],
+                [0.0, 1.0, 0.0, translation.y],
+                [0.0, 0.0, 1.0, translation.z],
                 [0.0, 0.0, 0.0, 1.0],
             ],
         }
@@ -190,7 +203,7 @@ impl std::ops::Mul<Transform> for Transform {
                     + self.matrix[x][3] * rhs.matrix[3][y];
             }
         }
-        
+
         Self { matrix: result }
     }
 }

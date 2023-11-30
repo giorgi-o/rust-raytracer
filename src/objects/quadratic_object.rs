@@ -66,7 +66,7 @@ impl Object for Quadratic {
             + 2.0 * i * P.z
             + j;
 
-        if Aq.abs() < 0.0001 {
+        if Aq.abs() == 0.0 {
             // only one tangent intersection, return nothing
             return hitvec![];
         }

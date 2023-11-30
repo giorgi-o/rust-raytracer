@@ -115,8 +115,8 @@ impl Camera for FullCamera {
                 continue;
             }
 
-            // only print for first, last and every 5th row
-            if y % 5 != 0 && y != 0 && y != end_y - 1 {
+            // only print for first, last two, and every 5th row
+            if y > 0 && y < end_y - 1 && y % 5 != 0 {
                 continue;
             }
 
@@ -125,7 +125,7 @@ impl Camera for FullCamera {
             };
 
             let height = end_y;
-            let progress = y as f32 / height as f32;
+            let progress = (y + 1) as f32 / height as f32;
 
             let elapsed = start.elapsed().as_secs_f32();
             let eta = elapsed / progress - elapsed;
