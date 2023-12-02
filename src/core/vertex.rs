@@ -85,6 +85,20 @@ impl std::ops::AddAssign<Vector> for Vertex {
     }
 }
 
+impl std::ops::Sub<Vector> for Vertex {
+    type Output = Vertex;
+
+    fn sub(self, rhs: Vector) -> Self::Output {
+        Self {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
+            z: self.z - rhs.z,
+            w: self.w,
+            normal: None,
+        }
+    }
+}
+
 impl From<Vector> for Vertex {
     fn from(vector: Vector) -> Self {
         Self::new_xyz(vector.x, vector.y, vector.z)

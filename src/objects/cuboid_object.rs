@@ -69,14 +69,23 @@ impl Cuboid {
             let bdl = corner.clone() + Vector::new(0.0, 0.0, depth);
             let bdr = corner.clone() + Vector::new(width, 0.0, depth);
 
+            // vectors
+            let up = Vector::new(0.0, 1.0, 0.0);
+            let down = Vector::new(0.0, -1.0, 0.0);
+            let left = Vector::new(-1.0, 0.0, 0.0);
+            let right = Vector::new(1.0, 0.0, 0.0);
+            let forwards = Vector::new(0.0, 0.0, 1.0);
+            let backwards = Vector::new(0.0, 0.0, -1.0);
+
             let m = &self.material;
+            //  pub fn new_from_point(point: &Vertex, up: Vector, normal: Vector, material: Arc<dyn Material>)
             CuboidPlanes {
-                right: Plane::new_from_point(&bdr, &Vector::new(1.0, 0.0, 0.0), m.clone()),
-                left: Plane::new_from_point(&fdl, &Vector::new(-1.0, 0.0, 0.0), m.clone()),
-                up: Plane::new_from_point(&ful, &Vector::new(0.0, 1.0, 0.0), m.clone()),
-                down: Plane::new_from_point(&fdl, &Vector::new(0.0, -1.0, 0.0), m.clone()),
-                back: Plane::new_from_point(&bdl, &Vector::new(0.0, 0.0, 1.0), m.clone()),
-                front: Plane::new_from_point(&fdl, &Vector::new(0.0, 0.0, -1.0), m.clone()),
+                right: Plane::new_from_point(&bdr, up, right, m.clone()),
+                left: Plane::new_from_point(&fdl, up, left, m.clone()),
+                up: Plane::new_from_point(&ful, forwards, up, m.clone()),
+                down: Plane::new_from_point(&fdl, forwards, down, m.clone()),
+                front: Plane::new_from_point(&fdl, up, backwards, m.clone()),
+                back: Plane::new_from_point(&bdl, down, forwards, m.clone()),
             }
         })
     }

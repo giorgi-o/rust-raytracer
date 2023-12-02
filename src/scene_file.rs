@@ -4,8 +4,11 @@ use crate::{
     core::{colour::Colour, scene::Scene, vector::Vector, vertex::Vertex},
     lights::{directional_light::DirectionalLight, light::Light},
     materials::{
-        compound_material::CompoundMaterial, falsecolour_material::FalseColour,
-        global_material::GlobalMaterial, material::Material, phong_material::Phong,
+        compound_material::CompoundMaterial,
+        falsecolour_material::FalseColour,
+        global_material::GlobalMaterial,
+        material::Material,
+        phong_material::{Monochrome, Phong}, texture::Texture,
     },
     objects::{
         cuboid_object::Cuboid, object::Object, plane_object::Plane, quadratic_object::Quadratic,
@@ -230,7 +233,8 @@ impl Paragraph {
         let object: Box<dyn Object> = match self.class.as_str() {
             "Plane" => Box::new(Plane::new_from_point(
                 &self.get_attr("point")?.as_vertex()?,
-                &self.get_attr("normal")?.as_vector()?,
+                self.get_attr("up")?.as_vector()?,
+                self.get_attr("normal")?.as_vector()?,
                 self.get_attr("material")?.to_material()?,
             )),
             "Sphere" => Box::new(Sphere::new(
@@ -279,7 +283,7 @@ impl Paragraph {
                 self.get_attr("colour")?.as_colour()?,
                 self.get_attr("reflectiveness")?.as_float()?,
             ),
-            "Transparent" => CompoundMaterial::new_transparent(
+            "Transparent" => CompoundMaterial::new_translucent(
                 self.get_attr("colour")?.as_colour()?,
                 self.get_attr("transparency")?.as_float()?,
                 self.get_attr("ior")?.as_float()?,
@@ -289,10 +293,17 @@ impl Paragraph {
                 self.get_attr("refract")?.as_colour()?,
                 self.get_attr("ior")?.as_float()?,
             ),
-            "Phong" => Phong::new(
-                self.get_attr("ambient")?.as_colour()?,
-                self.get_attr("diffuse")?.as_colour()?,
-                self.get_attr("specular")?.as_colour()?,
+            "Monochrome" => Monochrome::new(
+                self.get_attr("colour")?.as_colour()?,
+                self.get_attr_or("ambient", AttributeValue::Float(0.1))
+                    .as_float()?,
+                self.get_attr("shininess")?.as_float()?,
+            ),
+            // "Texture" => Texture::import(name, scale, ambient_strength, shininess)
+            "Texture" => Texture::import(
+                self.get_attr("name")?.as_word()?,
+                self.get_attr("scale")?.as_float()?,
+                self.get_attr("ambient")?.as_float()?,
                 self.get_attr("shininess")?.as_float()?,
             ),
             "FalseColour" => Arc::new(FalseColour::new()),
@@ -330,6 +341,13 @@ enum AttributeValue {
 }
 
 impl Attribute {
+    fn as_word(&self) -> Result<String> {
+        Ok(match &self.value {
+            AttributeValue::Word(w) => w.clone(),
+            _ => bail!(self.line_number, "Invalid attribute value for word"),
+        })
+    }
+
     fn as_colour(&self) -> Result<Colour> {
         Ok(match &self.value {
             AttributeValue::Vector(v) => Colour::new(v.x, v.y, v.z),

@@ -15,3 +15,11 @@ impl From<(f32, f32)> for TexCoords {
         Self::new(coords.0, coords.1)
     }
 }
+
+impl std::ops::Mul<f32> for TexCoords {
+    type Output = Self;
+
+    fn mul(self, rhs: f32) -> Self::Output {
+        Self::new(self.u * rhs, self.v * rhs)
+    }
+}

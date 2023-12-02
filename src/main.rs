@@ -35,7 +35,7 @@ mod materials {
     pub mod global_material;
     pub mod material;
     pub mod phong_material;
-    pub mod texture_material;
+    pub mod texture;
 }
 
 mod lights {

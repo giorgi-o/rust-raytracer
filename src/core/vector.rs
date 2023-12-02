@@ -104,6 +104,21 @@ impl Vector {
         self.y = y;
         self.z = z;
     }
+
+    pub fn to_tangent_space(mut self, tangent: &Self, normal: &Self) -> Self {
+        let tangent = tangent.normalised();
+        let normal = normal.normalised();
+        let bitangent = normal.cross(&tangent);
+
+        let rotation_matrix = Transform::from_rotation_matrix([
+            [tangent.x, bitangent.x, normal.x],
+            [tangent.y, bitangent.y, normal.y],
+            [tangent.z, bitangent.z, normal.z],
+        ]);
+
+        self.apply_transform(&rotation_matrix);
+        self.normalised()
+    }
 }
 
 impl std::ops::Mul<Vector> for Vector {

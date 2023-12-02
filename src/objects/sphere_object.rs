@@ -1,10 +1,12 @@
-use std::sync::Arc;
+use std::{f32::consts::PI, sync::Arc};
 
 use crate::{
     core::{
         hit::{Hit, HitVec},
         ray::Ray,
+        tex_coords::TexCoords,
         transform::Transform,
+        vector::Vector,
         vertex::Vertex,
     },
     hitvec,
@@ -56,6 +58,24 @@ impl Object for Sphere {
             if normal.dot(&ray.direction) > 0.0 {
                 normal.negate();
             }
+
+            let theta = (-normal.x.atan2(normal.z)) + PI; // longitude
+            let phi = (-normal.y).acos(); // latitude
+            let u = theta / (2.0 * PI);
+            let v = (PI - phi) / PI;
+            let tex_coords = TexCoords::new(u, v);
+
+            if let Some(mut normal_map) = self.material.normal(&tex_coords) {
+                // rotate the normal map
+                // maths from https://computergraphics.stackexchange.com/a/5499
+                let a = Vector::new(1.0, 0.0, 0.0);
+                let tangent = a
+                    .cross(&(position.clone() - self.centre.vector()).vector())
+                    .normalised();
+                normal_map = normal_map.to_tangent_space(&tangent, &normal);
+                normal = normal_map.normalised();
+            }
+
             Hit::new(
                 self,
                 entering,
@@ -63,7 +83,7 @@ impl Object for Sphere {
                 position,
                 normal,
                 self.material.as_ref(),
-                None,
+                Some(tex_coords),
             )
         };
 

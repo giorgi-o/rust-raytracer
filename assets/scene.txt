@@ -11,26 +11,36 @@ light Directional
 # floor
 object Plane
    point 0.0 0.0 0.0
+   up 0.0 0.0 1.0
    normal 0.0 1.0 0.0
-   material Simple
-       colour White
-       reflectiveness 0.0
+   material Texture
+        name grass08
+        scale 1.0
+        ambient 0.1
+        shininess 100.0
 
 # back wall
 object Plane
     point 0.0 0.0 15.0
+    up 0.0 1.0 0.0
     normal 0.0 0.0 -1.0
-    material Simple
-        colour 0.5 0.0 0.0
-        reflectiveness 0.0
+    material Texture
+        name bricks10
+        scale 3.0
+        ambient 0.1
+        shininess 100.0
 
 # left wall
 object Plane
     point -5.0 0.0 0.0
+    up 0.0 1.0 0.0
     normal 1.0 0.0 0.0
-    material Simple
-        colour 0.0 0.5 0.0
-        reflectiveness 0.0
+    material Texture
+        name bricks10
+        scale 3.0
+        ambient 0.1
+        shininess 100.0
+
 
 
 
@@ -40,16 +50,18 @@ object Plane
 object Sphere
     centre -2.0 1.5 5.0
     radius 1.0
-    material Simple
-        colour 1.0 0.5 0.0
-        reflectiveness 0.3
+    material Texture
+        name wood02
+        scale 1.0
+        ambient 0.1
+        shininess 100.0
 
 # cube
 object Cuboid
     corner -1.3 0.0 3.0
     size 0.7 0.7 0.7
     material Transparent
-        colour 1.0 1.0 0.0
+        colour 1.0 0.0 0.0
         transparency 0.9
         ior 1.2
 
@@ -71,8 +83,6 @@ object Sphere
 object Cuboid
     corner -0.5 0.0 6.0
     size 2.0 1.0 1.0
-    material Phong
-        ambient 0.0
-        diffuse 0.0 0.5 0.5
-        specular 0.0
+    material Monochrome
+        colour 0.0 0.5 0.5
         shininess 100.0

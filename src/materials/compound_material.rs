@@ -2,7 +2,12 @@ use std::sync::Arc;
 
 use crate::core::{colour::Colour, environment::Environment, hit::Hit, ray::Ray, vector::Vector};
 
-use super::{global_material::GlobalMaterial, material::Material, phong_material::Phong};
+use super::{
+    global_material::GlobalMaterial,
+    material::Material,
+    phong_material::{Monochrome, Phong},
+    texture::Texture,
+};
 
 pub struct CompoundMaterial {
     materials: Vec<Arc<dyn Material>>,
@@ -21,10 +26,7 @@ impl CompoundMaterial {
     }
 
     pub fn new_simple(colour: Colour, reflectiveness: f32) -> Arc<Self> {
-        let ambient = colour * 0.1;
-        let diffuse = colour * 0.7;
-        let specular = Colour::grey(0.5);
-        let phong = Phong::new(ambient, diffuse, specular, 100.0);
+        let phong = Monochrome::new(colour, 0.1, 100.0);
 
         let global = GlobalMaterial::new(colour * reflectiveness, Colour::black(), 1.0);
 
@@ -34,12 +36,9 @@ impl CompoundMaterial {
         Arc::new(compound)
     }
 
-    pub fn new_transparent(colour: Colour, transparency: f32, ior: f32) -> Arc<Self> {
+    pub fn new_translucent(colour: Colour, transparency: f32, ior: f32) -> Arc<Self> {
         let opaqueness = 1.0 - transparency;
-        let ambient = colour * 0.1 * opaqueness;
-        let diffuse = colour * 0.7 * opaqueness;
-        let specular = Colour::grey(0.5);
-        let phong = Phong::new(ambient, diffuse, specular, 100.0);
+        let phong = Monochrome::new(colour * opaqueness, 0.1, 100.0);
 
         let global = GlobalMaterial::new(colour * transparency, colour * transparency, ior);
 

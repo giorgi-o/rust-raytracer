@@ -107,14 +107,7 @@ impl Triangle {
 
         self.plane.get_or_init(|| {
             let plane_normal = self.get_plane_normal();
-            let d = -plane_normal.dot(&self.a.vector());
-            Plane::new_raw(
-                plane_normal.x,
-                plane_normal.y,
-                plane_normal.z,
-                d,
-                self.material.clone(),
-            )
+            Plane::new_from_point(&self.a, self.ab, plane_normal, self.material.clone())
         })
     }
 
