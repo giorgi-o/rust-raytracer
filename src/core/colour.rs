@@ -81,6 +81,14 @@ impl std::ops::Mul<f32> for Colour {
     }
 }
 
+impl std::ops::Div<f32> for Colour {
+    type Output = Colour;
+
+    fn div(self, rhs: f32) -> Self::Output {
+        Self::new_rgba(self.r / rhs, self.g / rhs, self.b / rhs, self.a / rhs)
+    }
+}
+
 impl std::ops::AddAssign<Colour> for Colour {
     fn add_assign(&mut self, rhs: Colour) {
         self.r += rhs.r;

@@ -46,13 +46,13 @@ pub struct Cuboid {
 }
 
 impl Cuboid {
-    pub fn new(corner: Vertex, size: Vector, material: Arc<dyn Material>) -> Self {
-        Self {
+    pub fn new(corner: Vertex, size: Vector, material: Arc<dyn Material>) -> Box<Self> {
+        Box::new(Self {
             corner,
             size,
             material,
             planes: OnceLock::new(),
-        }
+        })
     }
 
     fn get_planes(&self) -> &CuboidPlanes {
@@ -80,12 +80,12 @@ impl Cuboid {
             let m = &self.material;
             //  pub fn new_from_point(point: &Vertex, up: Vector, normal: Vector, material: Arc<dyn Material>)
             CuboidPlanes {
-                right: Plane::new_from_point(&bdr, up, right, m.clone()),
-                left: Plane::new_from_point(&fdl, up, left, m.clone()),
-                up: Plane::new_from_point(&ful, forwards, up, m.clone()),
-                down: Plane::new_from_point(&fdl, forwards, down, m.clone()),
-                front: Plane::new_from_point(&fdl, up, backwards, m.clone()),
-                back: Plane::new_from_point(&bdl, down, forwards, m.clone()),
+                right: Plane::new_raw(&bdr, up, right, m.clone()),
+                left: Plane::new_raw(&fdl, up, left, m.clone()),
+                up: Plane::new_raw(&ful, forwards, up, m.clone()),
+                down: Plane::new_raw(&fdl, forwards, down, m.clone()),
+                front: Plane::new_raw(&fdl, up, backwards, m.clone()),
+                back: Plane::new_raw(&bdl, down, forwards, m.clone()),
             }
         })
     }

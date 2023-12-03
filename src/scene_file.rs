@@ -2,13 +2,14 @@ use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use crate::{
     core::{colour::Colour, scene::Scene, vector::Vector, vertex::Vertex},
-    lights::{directional_light::DirectionalLight, light::Light},
+    lights::{directional_light::DirectionalLight, light::Light, point_light::PointLight},
     materials::{
         compound_material::CompoundMaterial,
         falsecolour_material::FalseColour,
         global_material::GlobalMaterial,
         material::Material,
-        phong_material::{Monochrome, Phong}, texture::Texture,
+        phong_material::{Monochrome, Phong},
+        texture::Texture,
     },
     objects::{
         cuboid_object::Cuboid, object::Object, plane_object::Plane, quadratic_object::Quadratic,
@@ -218,36 +219,41 @@ impl Paragraph {
     }
 
     fn to_light(mut self) -> Result<Box<dyn Light>> {
-        let light = match self.class.as_str() {
+        let light: Box<dyn Light> = match self.class.as_str() {
             "Directional" => DirectionalLight::new(
                 self.get_attr("direction")?.as_vector()?,
                 self.get_attr_or("colour", AttributeValue::Float(1.0))
                     .as_colour()?,
             ),
+            "Point" => PointLight::new(
+                self.get_attr("position")?.as_vertex()?,
+                self.get_attr_or("colour", AttributeValue::Float(1.0))
+                    .as_colour()?,
+            ),
             _ => bail!(self.start_line, "Invalid light class: {}", self.class),
         };
-        Ok(Box::new(light))
+        Ok(light)
     }
 
     fn to_object(mut self) -> Result<Box<dyn Object>> {
         let object: Box<dyn Object> = match self.class.as_str() {
-            "Plane" => Box::new(Plane::new_from_point(
+            "Plane" => Plane::new(
                 &self.get_attr("point")?.as_vertex()?,
                 self.get_attr("up")?.as_vector()?,
                 self.get_attr("normal")?.as_vector()?,
                 self.get_attr("material")?.to_material()?,
-            )),
-            "Sphere" => Box::new(Sphere::new(
+            ),
+            "Sphere" => Sphere::new(
                 self.get_attr("centre")?.as_vertex()?,
                 self.get_attr("radius")?.as_float()?,
                 self.get_attr("material")?.to_material()?,
-            )),
-            "Cuboid" => Box::new(Cuboid::new(
+            ),
+            "Cuboid" => Cuboid::new(
                 self.get_attr("corner")?.as_vertex()?,
                 self.get_attr("size")?.as_vector()?,
                 self.get_attr("material")?.to_material()?,
-            )),
-            "Quadratic" => Box::new(Quadratic::new(
+            ),
+            "Quadratic" => Quadratic::new(
                 (
                     self.get_attr_or("a", AttributeValue::Float(0.0))
                         .as_float()?,
@@ -271,7 +277,7 @@ impl Paragraph {
                         .as_float()?,
                 ),
                 self.get_attr("material")?.to_material()?,
-            )),
+            ),
             _ => bail!(self.start_line, "Invalid object class: {}", self.class),
         };
         Ok(object)

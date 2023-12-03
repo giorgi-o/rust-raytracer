@@ -20,9 +20,9 @@ pub struct Image {
 
 impl Image {
     pub fn from_image(path: PathBuf) -> Result<Self, String> {
-        // check if ppm file already exists
         let ppm_path = path.with_extension("ppm");
         if !ppm_path.exists() {
+            // convert to ppm
             Command::new("ffmpeg")
                 .arg("-y")
                 .arg("-hide_banner")

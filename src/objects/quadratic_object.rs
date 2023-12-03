@@ -24,11 +24,11 @@ impl Quadratic {
     pub fn new(
         variables: (f32, f32, f32, f32, f32, f32, f32, f32, f32, f32),
         material: Arc<dyn Material>,
-    ) -> Self {
-        Self {
+    ) -> Box<Self> {
+        Box::new(Self {
             variables,
             material,
-        }
+        })
     }
 }
 

@@ -32,6 +32,14 @@ impl Vertex {
         Vector::new(self.x, self.y, self.z)
     }
 
+    pub fn vector_to(&self, other: &Vertex) -> Vector {
+        Vector::new(other.x - self.x, other.y - self.y, other.z - self.z)
+    }
+
+    pub fn distance(&self, other: &Vertex) -> f32 {
+        self.vector_to(other).length()
+    }
+
     pub fn apply_transform(&mut self, transform: &Transform) {
         let matrix = &transform.matrix;
 

@@ -1,7 +1,6 @@
-use crate::core::{vector::Vector, colour::Colour, vertex::Vertex};
+use crate::core::{colour::Colour, vector::Vector, vertex::Vertex};
 
 use super::light::Light;
-
 
 pub struct DirectionalLight {
     pub direction: Vector,
@@ -9,11 +8,11 @@ pub struct DirectionalLight {
 }
 
 impl DirectionalLight {
-    pub fn new(direction: Vector, intensity: Colour) -> Self {
-        Self {
+    pub fn new(direction: Vector, intensity: Colour) -> Box<Self> {
+        Box::new(Self {
             direction,
             intensity,
-        }
+        })
     }
 }
 

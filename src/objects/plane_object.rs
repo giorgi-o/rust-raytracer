@@ -24,17 +24,7 @@ pub struct Plane {
 }
 
 impl Plane {
-    // pub fn new_raw(a: f32, b: f32, c: f32, d: f32, material: Arc<dyn Material>) -> Self {
-    //     Self {
-    //         a,
-    //         b,
-    //         c,
-    //         d,
-    //         material,
-    //     }
-    // }
-
-    pub fn new_from_point(
+    pub fn new_raw(
         point: &Vertex,
         up: Vector,
         normal: Vector,
@@ -47,6 +37,15 @@ impl Plane {
             d: -normal.dot(&point.vector()),
             material,
         }
+    }
+
+    pub fn new(
+        point: &Vertex,
+        up: Vector,
+        normal: Vector,
+        material: Arc<dyn Material>,
+    ) -> Box<Self> {
+        Box::new(Self::new_raw(point, up, normal, material))
     }
 }
 
@@ -106,8 +105,8 @@ impl Object for Plane {
             let tex_coords = TexCoords::new(u, v);
 
             if let Some(normal_map) = self.material.normal(&tex_coords) {
-                let tangent = Vector::new(1.0, 0.0, 0.0);
-                normal = normal_map.to_tangent_space(&tangent, &normal);
+                let right = self.normal.cross(&self.up).normalised();
+                normal = normal_map.to_tangent_space(&right, &normal);
             }
 
             let hit1 = Hit::new(self, true, t, position, normal, material, Some(tex_coords));

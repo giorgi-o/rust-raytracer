@@ -102,8 +102,7 @@ impl Environment for Scene {
 
         // then, compute the light contribution for every light in the scene
         for light in self.lights.iter() {
-            let mut viewer = -hit.position.clone().vector();
-            viewer.normalise();
+            let viewer = -hit.position.clone().vector().normalised();
 
             let mut lit = light.get_direction(&hit.position);
             if lit.as_ref().is_some_and(|ldir| ldir.dot(&hit.normal) > 0.0) {
@@ -117,7 +116,7 @@ impl Environment for Scene {
                 // add a small offset to the shadow ray origin to avoid self intersection
                 shadow_ray.position += shadow_ray.direction * 0.0001;
 
-                if self.shadowtrace(&shadow_ray, f32::MAX) {
+                if self.shadowtrace(&shadow_ray, ldir.length()) {
                     lit = None;
                 }
             }

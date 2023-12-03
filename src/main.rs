@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::{path::PathBuf, process::Command};
+use std::{path::PathBuf, process::Command, time::Instant};
 
 use core::scene::Scene;
 
@@ -41,6 +41,7 @@ mod materials {
 mod lights {
     pub mod directional_light;
     pub mod light;
+    pub mod point_light;
 }
 
 mod objects {
@@ -94,6 +95,8 @@ fn build_scene() -> Result<Scene, ParseError> {
 }
 
 fn render() {
+    let start = Instant::now();
+
     let width = 1024;
     let height = 1024;
 
@@ -104,6 +107,7 @@ fn render() {
             return;
         }
     };
+    let build_scene_end = Instant::now();
 
     // "default" camera position
     let position = Vertex::new_xyz(0.0, 3.0, 0.0);
@@ -114,15 +118,25 @@ fn render() {
     let camera = FullCamera::new(width, height, fov, position, lookat, up);
 
     let framebuffer = camera.render(&scene);
+    let render_end = Instant::now();
 
     let rgb_outpath = parse_path("render/rgb.ppm");
     framebuffer.write_rgb_file(&rgb_outpath);
     framebuffer.write_depth_file(&parse_path("render/depth.ppm"));
+    let write_end = Instant::now();
 
     println!("Running FFmpeg...");
     ffmpeg_ppm_to_png(rgb_outpath);
+    let ffmpeg_end = Instant::now();
 
-    println!("Done!");
+    println!(
+        "Done! Took {:.2} seconds - build scene: {:.2}, render: {:.2}, write: {:.2}, ffmpeg: {:.2}",
+        (ffmpeg_end - start).as_secs_f32(),
+        (build_scene_end - start).as_secs_f32(),
+        (render_end - build_scene_end).as_secs_f32(),
+        (write_end - render_end).as_secs_f32(),
+        (ffmpeg_end - write_end).as_secs_f32()
+    );
 }
 
 fn ffmpeg_ppm_to_png(ppm_filename: PathBuf) {

@@ -22,12 +22,12 @@ pub struct Sphere {
 }
 
 impl Sphere {
-    pub fn new(centre: Vertex, radius: f32, material: Arc<dyn Material>) -> Self {
-        Self {
+    pub fn new(centre: Vertex, radius: f32, material: Arc<dyn Material>) -> Box<Self> {
+        Box::new(Self {
             centre,
             radius,
             material,
-        }
+        })
     }
 }
 
