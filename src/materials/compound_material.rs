@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use crate::core::{colour::Colour, environment::Environment, hit::Hit, ray::Ray, vector::Vector};
+use crate::{
+    core::{colour::Colour, hit::Hit, ray::Ray, vector::Vector},
+    environments::scene::Scene,
+};
 
 use super::{
     global_material::GlobalMaterial,
@@ -50,17 +53,17 @@ impl CompoundMaterial {
 }
 
 impl Material for CompoundMaterial {
-    fn compute_once(&self, env: &dyn Environment, viewer: &Ray, hit: &Hit, recurse: u8) -> Colour {
+    fn compute_once(&self, scene: &Scene, viewer: &Ray, hit: &Hit, depth: u8) -> Colour {
         self.materials
             .iter()
             .fold(Colour::black(), |acc, material| {
-                acc + material.compute_once(env, viewer, hit, recurse)
+                acc + material.compute_once(scene, viewer, hit, depth)
             })
     }
 
     fn compute_per_light(
         &self,
-        env: &dyn Environment,
+        scene: &Scene,
         viewer: &Vector,
         hit: &Hit,
         ldir: &Vector,
@@ -68,7 +71,7 @@ impl Material for CompoundMaterial {
         self.materials
             .iter()
             .fold(Colour::black(), |acc, material| {
-                acc + material.compute_per_light(env, viewer, hit, ldir)
+                acc + material.compute_per_light(scene, viewer, hit, ldir)
             })
     }
 }

@@ -2,7 +2,7 @@
 
 use std::{path::PathBuf, process::Command, time::Instant};
 
-use core::scene::Scene;
+use environments::scene::Scene;
 
 use scene_file::{ParseError, SceneFile};
 
@@ -13,15 +13,21 @@ use crate::{
 
 mod core {
     pub mod colour;
-    pub mod environment;
     pub mod framebuffer;
     pub mod hit;
     pub mod ray;
-    pub mod scene;
     pub mod tex_coords;
     pub mod transform;
     pub mod vector;
     pub mod vertex;
+    pub mod photon;
+    pub mod photon_tree;
+}
+
+mod environments {
+    pub mod environment;
+    pub mod photon_scene;
+    pub mod scene;
 }
 
 mod cameras {
@@ -54,6 +60,7 @@ mod objects {
     pub mod sphere_object;
     pub mod triangle_object;
 }
+
 
 mod scene_file;
 
@@ -95,6 +102,9 @@ fn build_scene() -> Result<Scene, ParseError> {
 }
 
 fn render() {
+    // set random seed
+    
+
     let start = Instant::now();
 
     let width = 1024;

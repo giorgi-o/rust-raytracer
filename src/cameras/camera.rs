@@ -1,4 +1,4 @@
-use crate::core::{environment::Environment, framebuffer::FrameBuffer};
+use crate::{core::framebuffer::FrameBuffer, environments::environment::Environment};
 
 pub trait Camera: Send {
     fn width(&self) -> u32;

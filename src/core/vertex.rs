@@ -28,6 +28,10 @@ impl Vertex {
         Self::new(0.0, 0.0, 0.0, 1.0)
     }
 
+    pub const fn xyz(&self) -> [f32; 3] {
+        [self.x, self.y, self.z]
+    }
+
     pub const fn vector(&self) -> Vector {
         Vector::new(self.x, self.y, self.z)
     }

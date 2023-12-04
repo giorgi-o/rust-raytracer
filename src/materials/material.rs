@@ -1,11 +1,23 @@
-use crate::core::{ray::Ray, hit::Hit, vector::Vector, colour::Colour, environment::Environment, tex_coords::TexCoords};
+use crate::{
+    core::{
+        colour::Colour,
+        hit::Hit,
+        photon::Photon,
+        photon_tree::{NeighbourPhotons, PhotonTree},
+        ray::Ray,
+        tex_coords::TexCoords,
+        vector::Vector, vertex::Vertex,
+    },
+    environments::{photon_scene::PhotonScene, scene::Scene},
+};
 
 pub trait Material: Send + Sync {
     // called once per intersection
-    fn compute_once(&self, env: &dyn Environment, viewer: &Ray, hit: &Hit, recurse: u8) -> Colour;
+    fn compute_once(&self, scene: &Scene, viewer: &Ray, hit: &Hit, depth: u8) -> Colour;
 
     // called for each light that reaches a surface
-    fn compute_per_light(&self, env: &dyn Environment, viewer: &Vector, hit: &Hit, ldir: &Vector) -> Colour;
+    fn compute_per_light(&self, scene: &Scene, viewer: &Vector, hit: &Hit, ldir: &Vector)
+        -> Colour;
 
     // materials that support bump/normal maps should implement this
     fn normal(&self, tex_coords: &TexCoords) -> Option<Vector> {
@@ -13,4 +25,29 @@ pub trait Material: Send + Sync {
     }
 
     // You will need additional material methods to support Photon-mapping.
+
+    // assert this is a photon mapped material and return a reference to it
+    fn photon_mapped(&self) -> &dyn PhotonMaterial {
+        panic!("Material does not support photon mapping");
+    }
+}
+
+struct PhotonBehaviour {
+    pub absorb_weight: f32,
+    pub diffuse_weight: f32,
+    pub specular_weight: f32,
+}
+
+pub trait PhotonMaterial: Material {
+    fn photon_tree(&self) -> &PhotonTree;
+    // fn photon_behaviour(&self) -> PhotonBehaviour;
+
+    fn compute_photon(&self, scene: &PhotonScene, hit: &Hit, ldir: &Vector) -> Colour;
+
+    fn photon_landed(&self, photon: Photon, _scene: &PhotonScene) {
+        self.photon_tree().insert(photon);
+    }
+    fn photons_in_radius(&self, position: &Vertex, radius: f32) -> NeighbourPhotons {
+        self.photon_tree().get_within_radius(position, radius)
+    }
 }

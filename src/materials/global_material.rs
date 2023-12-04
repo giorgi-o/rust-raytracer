@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use crate::core::{colour::Colour, environment::Environment, hit::Hit, ray::Ray, vector::Vector};
+use crate::{core::{colour::Colour, hit::Hit, ray::Ray, vector::Vector}, environments::scene::Scene};
 
 use super::material::Material;
 
@@ -23,8 +23,8 @@ impl GlobalMaterial {
 }
 
 impl Material for GlobalMaterial {
-    fn compute_once(&self, env: &dyn Environment, viewer: &Ray, hit: &Hit, recurse: u8) -> Colour {
-        if recurse >= 5 {
+    fn compute_once(&self, scene: &Scene, viewer: &Ray, hit: &Hit, depth: u8) -> Colour {
+        if depth >= 5 {
             return Colour::black();
         }
 
@@ -37,7 +37,7 @@ impl Material for GlobalMaterial {
             let reflection_ray = Ray::new(reflection_origin, reflection_direction);
 
             reflection_colour =
-                Some(env.raytrace(&reflection_ray, recurse + 1).colour * self.reflect_weight);
+                Some(scene.raytrace(&reflection_ray, depth + 1).colour * self.reflect_weight);
         }
 
         // refraction
@@ -74,7 +74,7 @@ impl Material for GlobalMaterial {
                 let refract_origin = hit.position.clone() + T * 0.0001;
                 let refract_ray = Ray::new(refract_origin, T);
 
-                let raytraced_colour = env.raytrace(&refract_ray, recurse + 1).colour;
+                let raytraced_colour = scene.raytrace(&refract_ray, depth + 1).colour;
                 refraction_colour = Some(raytraced_colour * self.refract_weight);
             }
         }
@@ -91,7 +91,7 @@ impl Material for GlobalMaterial {
 
     fn compute_per_light(
         &self,
-        _env: &dyn Environment,
+        _scene: &Scene,
         _viewer: &Vector,
         _hit: &Hit,
         _ldir: &Vector,

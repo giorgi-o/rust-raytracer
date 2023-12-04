@@ -6,11 +6,11 @@ use std::{
 };
 
 use crate::{
-    core::{colour::Colour, hit::Hit, tex_coords::TexCoords, vector::Vector},
+    core::{colour::Colour, hit::Hit, tex_coords::TexCoords, vector::Vector, photon_tree::PhotonTree},
     parse_path,
 };
 
-use super::phong_material::Phong;
+use super::{phong_material::Phong, material::PhotonMaterial};
 
 pub struct Image {
     width: u32,
@@ -129,6 +129,7 @@ pub struct Texture {
     scale: f32,
     ambient_strength: f32,
     shininess: f32,
+    photon_tree: PhotonTree,
 }
 
 impl Texture {
@@ -146,6 +147,7 @@ impl Texture {
             scale,
             ambient_strength,
             shininess,
+            photon_tree: PhotonTree::new(),
         })
     }
 }
@@ -178,5 +180,15 @@ impl Phong for Texture {
         let normal = normal.normalised();
         // dbg!(normal);
         Some(normal)
+    }
+
+    fn photon_mapped(&self) -> &dyn PhotonMaterial {
+        self
+    }
+}
+
+impl PhotonMaterial for Texture {
+    fn photon_tree(&self) -> &PhotonTree {
+        &self.photon_tree
     }
 }

@@ -1,20 +1,17 @@
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use crate::{
-    core::{colour::Colour, scene::Scene, vector::Vector, vertex::Vertex},
+    core::{colour::Colour, vector::Vector, vertex::Vertex},
     lights::{directional_light::DirectionalLight, light::Light, point_light::PointLight},
     materials::{
-        compound_material::CompoundMaterial,
-        falsecolour_material::FalseColour,
-        global_material::GlobalMaterial,
-        material::Material,
-        phong_material::{Monochrome, Phong},
+        compound_material::CompoundMaterial, falsecolour_material::FalseColour,
+        global_material::GlobalMaterial, material::Material, phong_material::Monochrome,
         texture::Texture,
     },
     objects::{
         cuboid_object::Cuboid, object::Object, plane_object::Plane, quadratic_object::Quadratic,
         sphere_object::Sphere,
-    },
+    }, environments::scene::Scene,
 };
 
 type LineNumber = u32;

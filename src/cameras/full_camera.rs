@@ -1,8 +1,10 @@
 use std::io::Write;
 
-use crate::core::{
-    environment::{Environment, RaytraceResult}, framebuffer::FrameBuffer, ray::Ray, transform::Transform,
-    vector::Vector, vertex::Vertex,
+use crate::{
+    core::{
+        framebuffer::FrameBuffer, ray::Ray, transform::Transform, vector::Vector, vertex::Vertex,
+    },
+    environments::environment::{Environment, RaytraceResult},
 };
 
 use super::camera::Camera;
@@ -103,7 +105,7 @@ impl Camera for FullCamera {
         for y in start_y..end_y {
             for x in 0..self.width {
                 let ray = self.get_ray_pixel(x, y);
-                let RaytraceResult {colour, depth} = environment.raytrace(&ray, 0);
+                let RaytraceResult { colour, depth } = environment.raytrace(&ray);
 
                 framebuffer.plot_pixel(x, y - start_y, &colour);
                 framebuffer.plot_depth(x, y - start_y, depth);
@@ -132,10 +134,7 @@ impl Camera for FullCamera {
             let percent = (progress * 100.0) as u32;
 
             // print!("\r{percent}% {elapsed:.2}s elapsed, {eta:.2}s ETA");
-            let _ = write!(
-                stdout,
-                "\r{percent}% {elapsed:.2}s elapsed, {eta:.2}s ETA"
-            );
+            let _ = write!(stdout, "\r{percent}% {elapsed:.2}s elapsed, {eta:.2}s ETA");
             let _ = stdout.flush();
         }
 

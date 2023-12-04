@@ -1,11 +1,9 @@
+use crate::core::hit::{Hit, HitVec};
 use crate::{lights::light::Light, objects::object::Object};
 
-use super::{
-    colour::Colour,
-    environment::{Environment, RaytraceResult},
-    hit::{Hit, HitVec},
-    ray::Ray,
-};
+use crate::core::{colour::Colour, ray::Ray};
+
+use super::environment::{Environment, RaytraceResult};
 
 pub struct Scene {
     objects: Vec<Box<dyn Object>>,
@@ -28,7 +26,7 @@ impl Scene {
         self.lights.push(light);
     }
 
-    pub fn select_first_hit<'s>(&self, hits: HitVec<'s>) -> Option<Hit<'s>> {
+    fn select_first_hit<'s>(&self, hits: HitVec<'s>) -> Option<Hit<'s>> {
         let mut min_hit: Option<Hit> = None;
         let mut min_distance = std::f32::MAX;
 
@@ -49,7 +47,7 @@ impl Scene {
         min_hit
     }
 
-    pub fn trace(&self, ray: &Ray) -> Option<Hit> {
+    fn trace(&self, ray: &Ray) -> Option<Hit> {
         let mut min_hit: Option<Hit> = None;
         let mut min_distance = std::f32::MAX;
 
@@ -69,9 +67,9 @@ impl Scene {
 
         min_hit
     }
-}
 
-impl Environment for Scene {
+    // raytrace a shadow ray.
+    // returns true if intersection found between 0 and limit along ray.
     fn shadowtrace(&self, ray: &Ray, limit: f32) -> bool {
         for object in self.objects.iter() {
             let hits = object.intersect(ray);
@@ -88,7 +86,9 @@ impl Environment for Scene {
         false
     }
 
-    fn raytrace(&self, ray: &Ray, recurse: u8) -> RaytraceResult {
+    // shoot a ray into the environment and get the colour and depth.
+    // depth indicates the current recursion level.
+    pub fn raytrace(&self, ray: &Ray, depth: u8) -> RaytraceResult {
         // first step, find the closest primitive
         let Some(hit) = self.trace(ray) else {
             return RaytraceResult {
@@ -98,7 +98,7 @@ impl Environment for Scene {
         };
 
         // next, compute the colour we should see
-        let mut colour = hit.material.compute_once(self, ray, &hit, recurse);
+        let mut colour = hit.material.compute_once(self, ray, &hit, depth);
 
         // then, compute the light contribution for every light in the scene
         for light in self.lights.iter() {
@@ -133,5 +133,17 @@ impl Environment for Scene {
             colour,
             depth: hit.distance,
         }
+    }
+}
+
+impl Environment for Scene {
+    fn pre_render(&mut self) {}
+
+    fn raytrace(&self, ray: &Ray) -> RaytraceResult {
+        Scene::raytrace(self, ray, 0)
+    }
+
+    fn objects(&self) -> &[Box<dyn Object>] {
+        &self.objects
     }
 }

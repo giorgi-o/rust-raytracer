@@ -83,28 +83,12 @@ impl Triangle {
     }
 
     pub fn get_plane_normal(&self) -> Vector {
-        // *self
-        //     .plane_normal
-        //     .get_or_insert_with(|| self.ab.cross(&self.bc).normalised())
-
         *self
             .plane_normal
             .get_or_init(|| self.ab.cross(&self.bc).normalised())
     }
 
     fn get_plane(&self) -> &Plane {
-        // let plane_normal = self.get_plane_normal();
-        // self.plane.get_or_insert_with(|| {
-        //     let d = -plane_normal.dot(&self.a.vector());
-        //     Plane::new(
-        //         plane_normal.x,
-        //         plane_normal.y,
-        //         plane_normal.z,
-        //         d,
-        //         self.material,
-        //     )
-        // })
-
         self.plane.get_or_init(|| {
             let plane_normal = self.get_plane_normal();
             Plane::new_raw(&self.a, self.ab, plane_normal, self.material.clone())

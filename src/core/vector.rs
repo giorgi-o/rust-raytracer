@@ -90,15 +90,9 @@ impl Vector {
     pub fn apply_transform(&mut self, transform: &Transform) {
         let matrix = &transform.matrix;
 
-        let x = matrix[0][0] * self.x
-            + matrix[0][1] * self.y
-            + matrix[0][2] * self.z;
-        let y = matrix[1][0] * self.x
-            + matrix[1][1] * self.y
-            + matrix[1][2] * self.z;
-        let z = matrix[2][0] * self.x
-            + matrix[2][1] * self.y
-            + matrix[2][2] * self.z;
+        let x = matrix[0][0] * self.x + matrix[0][1] * self.y + matrix[0][2] * self.z;
+        let y = matrix[1][0] * self.x + matrix[1][1] * self.y + matrix[1][2] * self.z;
+        let z = matrix[2][0] * self.x + matrix[2][1] * self.y + matrix[2][2] * self.z;
 
         self.x = x;
         self.y = y;
@@ -209,6 +203,40 @@ impl From<Vertex> for Vector {
             x: vertex.x,
             y: vertex.y,
             z: vertex.z,
+        }
+    }
+}
+
+// vector with spherical coordinates
+#[derive(Debug, Copy, Clone)]
+pub struct SVector {
+    pub r: f32,     // radius
+    pub alpha: f32, // angle from X to Z axis
+    pub beta: f32,  // angle from Z to Y axis
+}
+
+impl SVector {
+    pub fn new(r: f32, alpha: f32, beta: f32) -> Self {
+        Self { r, alpha, beta }
+    }
+}
+
+impl From<Vector> for SVector {
+    fn from(vector: Vector) -> Self {
+        let r = vector.length();
+        let alpha = vector.z.atan2(vector.x);
+        let beta = vector.y.atan2(vector.x.hypot(vector.z));
+
+        Self { r, alpha, beta }
+    }
+}
+
+impl From<SVector> for Vector {
+    fn from(svector: SVector) -> Self {
+        Self {
+            x: svector.r * svector.alpha.cos() * svector.beta.cos(),
+            y: svector.r * svector.beta.sin(),
+            z: svector.r * svector.alpha.sin() * svector.beta.cos(),
         }
     }
 }

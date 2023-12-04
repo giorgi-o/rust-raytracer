@@ -1,4 +1,4 @@
-use crate::core::{colour::Colour, vector::Vector, vertex::Vertex};
+use crate::{core::{colour::Colour, vector::Vector, vertex::Vertex}, environments::photon_scene::PhotonScene};
 
 pub trait Light: Send + Sync {
     // Get the direction towards the light at the point on the surface
@@ -9,4 +9,8 @@ pub trait Light: Send + Sync {
     fn get_intensity(&self, surface: &Vertex) -> Option<Colour>;
 
     // You will need additional light methods to support Photon-mapping.
+}
+
+pub trait PhotonLight: Light {
+    fn shoot_photons(&self, scene: &PhotonScene, num_photons: u32);
 }
