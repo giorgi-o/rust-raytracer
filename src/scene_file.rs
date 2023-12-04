@@ -2,6 +2,7 @@ use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use crate::{
     core::{colour::Colour, vector::Vector, vertex::Vertex},
+    environments::{environment::Environment, photon_scene::PhotonScene, scene::Scene},
     lights::{directional_light::DirectionalLight, light::Light, point_light::PointLight},
     materials::{
         compound_material::CompoundMaterial, falsecolour_material::FalseColour,
@@ -11,7 +12,7 @@ use crate::{
     objects::{
         cuboid_object::Cuboid, object::Object, plane_object::Plane, quadratic_object::Quadratic,
         sphere_object::Sphere,
-    }, environments::scene::Scene,
+    },
 };
 
 type LineNumber = u32;
@@ -46,23 +47,48 @@ pub struct SceneFile {
 }
 
 impl SceneFile {
-    pub fn from_path(path: &PathBuf) -> Result<Scene> {
+    pub fn from_path(path: &PathBuf) -> Result<Box<dyn Environment>> {
         let contents = std::fs::read_to_string(path).expect("Failed to read scene file");
         Self::from_contents(contents)
     }
 
-    pub fn from_contents(contents: String) -> Result<Scene> {
+    pub fn from_contents(contents: String) -> Result<Box<dyn Environment>> {
         let paragraphs = Paragraph::parse_whole_file(contents)?;
-        let mut scene = Scene::new();
+
+        // let mut scene = for paragraph in paragraphs.iter() {
+        //     if let ParagraphItem::Env(env) = paragraph.get_item()? {
+        //         break env;
+        //     }
+        // };
+        let (scenes, paragraphs): (Vec<_>, Vec<_>) =
+            paragraphs.into_iter().partition(|p| p.is_scene());
+
+        let mut scenes = scenes.into_iter();
+        let mut scene = match scenes.next() {
+            Some(scene) => {
+                let ParagraphItem::Env(scene) = scene.into_item()? else {
+                    panic!("is_scene() is true but into_item() is not Env")
+                };
+                scene
+            }
+            None => Box::new(Scene::new()),
+        };
+
+        if let Some(paragraph) = scenes.next() {
+            bail!(paragraph.start_line, "Multiple scenes in file");
+        }
 
         for paragraph in paragraphs {
             let start_line = paragraph.start_line;
-            let item = paragraph.get_item()?;
+            let item = paragraph.into_item()?;
             match item {
                 ParagraphItem::Light(light) => scene.add_light(light),
                 ParagraphItem::Object(object) => scene.add_object(object),
                 ParagraphItem::Material(_) => {
                     bail!(start_line, "Cannot add material to scene on its own")
+                }
+                ParagraphItem::Env(_) => {
+                    panic!("is_scene() is false but into_item() is Env")
                 }
             }
         }
@@ -206,16 +232,30 @@ impl Paragraph {
         })
     }
 
-    fn get_item(self) -> Result<ParagraphItem> {
+    fn into_item(self) -> Result<ParagraphItem> {
         match self.kind.as_str() {
-            "light" => Ok(ParagraphItem::Light(self.to_light()?)),
-            "object" => Ok(ParagraphItem::Object(self.to_object()?)),
-            "material" => Ok(ParagraphItem::Material(self.to_material()?)),
+            "light" => Ok(ParagraphItem::Light(self.into_light()?)),
+            "object" => Ok(ParagraphItem::Object(self.into_object()?)),
+            "material" => Ok(ParagraphItem::Material(self.into_material()?)),
+            "scene" => Ok(ParagraphItem::Env(self.into_scene()?)),
             _ => bail!(self.start_line, "Invalid paragraph kind: {}", self.kind),
         }
     }
 
-    fn to_light(mut self) -> Result<Box<dyn Light>> {
+    fn is_scene(&self) -> bool {
+        self.kind == "scene"
+    }
+
+    fn into_scene(self) -> Result<Box<dyn Environment>> {
+        let scene: Box<dyn Environment> = match self.class.as_str() {
+            "Scene" => Box::new(Scene::new()),
+            "PhotonScene" => Box::new(PhotonScene::new()),
+            _ => bail!(self.start_line, "Invalid scene class: {}", self.class),
+        };
+        Ok(scene)
+    }
+
+    fn into_light(mut self) -> Result<Box<dyn Light>> {
         let light: Box<dyn Light> = match self.class.as_str() {
             "Directional" => DirectionalLight::new(
                 self.get_attr("direction")?.as_vector()?,
@@ -232,23 +272,23 @@ impl Paragraph {
         Ok(light)
     }
 
-    fn to_object(mut self) -> Result<Box<dyn Object>> {
+    fn into_object(mut self) -> Result<Box<dyn Object>> {
         let object: Box<dyn Object> = match self.class.as_str() {
             "Plane" => Plane::new(
                 &self.get_attr("point")?.as_vertex()?,
                 self.get_attr("up")?.as_vector()?,
                 self.get_attr("normal")?.as_vector()?,
-                self.get_attr("material")?.to_material()?,
+                self.get_attr("material")?.into_material()?,
             ),
             "Sphere" => Sphere::new(
                 self.get_attr("centre")?.as_vertex()?,
                 self.get_attr("radius")?.as_float()?,
-                self.get_attr("material")?.to_material()?,
+                self.get_attr("material")?.into_material()?,
             ),
             "Cuboid" => Cuboid::new(
                 self.get_attr("corner")?.as_vertex()?,
                 self.get_attr("size")?.as_vector()?,
-                self.get_attr("material")?.to_material()?,
+                self.get_attr("material")?.into_material()?,
             ),
             "Quadratic" => Quadratic::new(
                 (
@@ -273,14 +313,14 @@ impl Paragraph {
                     self.get_attr_or("j", AttributeValue::Float(0.0))
                         .as_float()?,
                 ),
-                self.get_attr("material")?.to_material()?,
+                self.get_attr("material")?.into_material()?,
             ),
             _ => bail!(self.start_line, "Invalid object class: {}", self.class),
         };
         Ok(object)
     }
 
-    fn to_material(mut self) -> Result<Arc<dyn Material>> {
+    fn into_material(mut self) -> Result<Arc<dyn Material>> {
         let material: Arc<dyn Material> = match self.class.as_str() {
             "Simple" => CompoundMaterial::new_simple(
                 self.get_attr("colour")?.as_colour()?,
@@ -384,15 +424,16 @@ impl Attribute {
         })
     }
 
-    fn to_material(self) -> Result<Arc<dyn Material>> {
+    fn into_material(self) -> Result<Arc<dyn Material>> {
         let AttributeValue::SubParagraph(p) = self.value else {
             bail!(self.line_number, "Invalid attribute value for material");
         };
-        p.to_material()
+        p.into_material()
     }
 }
 
 enum ParagraphItem {
+    Env(Box<dyn Environment>),
     Light(Box<dyn Light>),
     Object(Box<dyn Object>),
     Material(Arc<dyn Material>),

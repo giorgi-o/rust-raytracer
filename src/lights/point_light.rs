@@ -35,6 +35,10 @@ impl Light for PointLight {
     fn get_intensity(&self, _surface: &Vertex) -> Option<Colour> {
         Some(self.intensity)
     }
+
+    fn photon_light(self: Box<Self>) -> Box<dyn PhotonLight> {
+        self
+    }
 }
 
 impl PhotonLight for PointLight {

@@ -90,9 +90,9 @@ impl Camera for FullCamera {
         self.height
     }
 
-    fn render_rows<E: Environment>(
+    fn render_rows(
         &self,
-        environment: &E,
+        environment: &dyn Environment,
         start_y: u32,
         end_y: u32,
     ) -> FrameBuffer {

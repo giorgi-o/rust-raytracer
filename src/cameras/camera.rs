@@ -4,11 +4,13 @@ pub trait Camera: Send {
     fn width(&self) -> u32;
     fn height(&self) -> u32;
 
-    fn render<E>(&self, environment: &E) -> FrameBuffer
+    fn render(&self, environment: &mut dyn Environment) -> FrameBuffer
     where
         for<'a> &'a Self: Send,
-        E: Environment + Send,
     {
+        environment.pre_render();
+        let environment = environment as &dyn Environment;
+
         let num_threads = std::thread::available_parallelism().map_or(4, |n| n.get()) as u32;
         // let num_threads = 1;
         let rows_per_thread = self.height() / num_threads;
@@ -40,6 +42,6 @@ pub trait Camera: Send {
         FrameBuffer::combine_rows(framebuffers)
     }
 
-    fn render_rows<E: Environment>(&self, environment: &E, start_y: u32, end_y: u32)
+    fn render_rows(&self, environment: &dyn Environment, start_y: u32, end_y: u32)
         -> FrameBuffer;
 }

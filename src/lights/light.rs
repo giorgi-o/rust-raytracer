@@ -9,6 +9,10 @@ pub trait Light: Send + Sync {
     fn get_intensity(&self, surface: &Vertex) -> Option<Colour>;
 
     // You will need additional light methods to support Photon-mapping.
+
+    fn photon_light(self: Box<Self>) -> Box<dyn PhotonLight> {
+        panic!("Light does not support photon mapping");
+    }
 }
 
 pub trait PhotonLight: Light {

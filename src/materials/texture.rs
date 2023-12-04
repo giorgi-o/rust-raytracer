@@ -6,11 +6,14 @@ use std::{
 };
 
 use crate::{
-    core::{colour::Colour, hit::Hit, tex_coords::TexCoords, vector::Vector, photon_tree::PhotonTree},
+    core::{
+        colour::Colour, hit::Hit, photon_tree::PhotonTree, tex_coords::TexCoords, vector::Vector,
+    },
+    environments::photon_scene::PhotonScene,
     parse_path,
 };
 
-use super::{phong_material::Phong, material::PhotonMaterial};
+use super::{material::PhotonMaterial, phong_material::Phong};
 
 pub struct Image {
     width: u32,
@@ -190,5 +193,9 @@ impl Phong for Texture {
 impl PhotonMaterial for Texture {
     fn photon_tree(&self) -> &PhotonTree {
         &self.photon_tree
+    }
+
+    fn compute_photon(&self, scene: &PhotonScene, hit: &Hit, ldir: &Vector) -> Colour {
+        self.diffuse(hit, ldir)
     }
 }

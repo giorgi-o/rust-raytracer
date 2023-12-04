@@ -1,6 +1,6 @@
 use std::sync::{RwLock, RwLockReadGuard};
 
-use kiddo::{KdTree, NearestNeighbour, SquaredEuclidean};
+use kiddo::{float::kdtree::KdTree, NearestNeighbour, SquaredEuclidean};
 
 use super::{photon::Photon, vertex::Vertex};
 
@@ -8,9 +8,10 @@ pub struct PhotonTree {
     inner: RwLock<PhotonTreeInner>,
 }
 
-pub struct PhotonTreeInner {
+struct PhotonTreeInner {
     vec: Vec<Photon>,
-    tree: KdTree<f32, 3>,
+    // tree: KdTree<f32, 3>,
+    tree: KdTree<f32, u64, 3, 100_000, u32>,
 }
 
 impl PhotonTree {
@@ -68,5 +69,9 @@ impl NeighbourPhotons<'_> {
         self.neighbours
             .iter()
             .map(move |neighbour| &self.inner_guard.vec[neighbour.item as usize])
+    }
+
+    pub fn len(&self) -> usize {
+        self.neighbours.len()
     }
 }

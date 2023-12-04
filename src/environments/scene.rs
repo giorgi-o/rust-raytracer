@@ -18,14 +18,6 @@ impl Scene {
         }
     }
 
-    pub fn add_object(&mut self, object: Box<dyn Object + 'static>) {
-        self.objects.push(object);
-    }
-
-    pub fn add_light(&mut self, light: Box<dyn Light + 'static>) {
-        self.lights.push(light);
-    }
-
     fn select_first_hit<'s>(&self, hits: HitVec<'s>) -> Option<Hit<'s>> {
         let mut min_hit: Option<Hit> = None;
         let mut min_distance = std::f32::MAX;
@@ -137,6 +129,14 @@ impl Scene {
 }
 
 impl Environment for Scene {
+    fn add_object(&mut self, object: Box<dyn Object + 'static>) {
+        self.objects.push(object);
+    }
+
+    fn add_light(&mut self, light: Box<dyn Light + 'static>) {
+        self.lights.push(light);
+    }
+
     fn pre_render(&mut self) {}
 
     fn raytrace(&self, ray: &Ray) -> RaytraceResult {

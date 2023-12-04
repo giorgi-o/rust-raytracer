@@ -1,8 +1,11 @@
-use crate::{core::{
-    colour::Colour,
-    hit::{Hit, HitVec},
-    ray::Ray,
-}, objects::object::Object};
+use crate::{
+    core::{
+        colour::Colour,
+        hit::{Hit, HitVec},
+        ray::Ray,
+    },
+    objects::object::Object, lights::light::Light,
+};
 
 pub struct RaytraceResult {
     pub colour: Colour,
@@ -12,6 +15,9 @@ pub struct RaytraceResult {
 pub trait Environment: Send + Sync {
     fn pre_render(&mut self);
     fn raytrace(&self, ray: &Ray) -> RaytraceResult;
+
+    fn add_object(&mut self, object: Box<dyn Object + 'static>);
+    fn add_light(&mut self, light: Box<dyn Light + 'static>);
 
     fn objects(&self) -> &[Box<dyn Object>];
 

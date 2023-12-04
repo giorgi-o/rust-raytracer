@@ -2,7 +2,7 @@
 
 use std::{path::PathBuf, process::Command, time::Instant};
 
-use environments::scene::Scene;
+use environments::{scene::Scene, environment::Environment};
 
 use scene_file::{ParseError, SceneFile};
 
@@ -97,7 +97,7 @@ fn main() {
     }
 }
 
-fn build_scene() -> Result<Scene, ParseError> {
+fn build_scene() -> Result<Box<dyn Environment>, ParseError> {
     SceneFile::from_path(&parse_path("assets/scene.txt"))
 }
 
@@ -110,7 +110,7 @@ fn render() {
     let width = 1024;
     let height = 1024;
 
-    let scene = match build_scene() {
+    let mut scene = match build_scene() {
         Ok(scene) => scene,
         Err(e) => {
             println!("Failed to build scene! {:?}", e);
@@ -127,7 +127,7 @@ fn render() {
 
     let camera = FullCamera::new(width, height, fov, position, lookat, up);
 
-    let framebuffer = camera.render(&scene);
+    let framebuffer = camera.render(scene.as_mut());
     let render_end = Instant::now();
 
     let rgb_outpath = parse_path("render/rgb.ppm");

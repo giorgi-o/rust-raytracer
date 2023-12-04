@@ -7,7 +7,7 @@ use crate::{
         colour::Colour, hit::Hit, photon_tree::PhotonTree, ray::Ray, tex_coords::TexCoords,
         vector::Vector,
     },
-    environments::scene::Scene,
+    environments::{environment::Environment, photon_scene::PhotonScene, scene::Scene},
 };
 
 use super::material::{Material, PhotonMaterial};
@@ -23,14 +23,14 @@ pub trait Phong: Send + Sync {
         panic!("Material does not support photon mapping");
     }
 
-    fn ambient(&self, scene: &Scene, hit: &Hit) -> Colour {
+    fn ambient(&self, hit: &Hit) -> Colour {
         self.colour_at_hit(hit) * self.ambient_strength()
     }
-    fn diffuse(&self, scene: &Scene, hit: &Hit, ldir: &Vector) -> Colour {
+    fn diffuse(&self, hit: &Hit, ldir: &Vector) -> Colour {
         let diffuse_strength = -hit.normal.dot(ldir);
         self.colour_at_hit(hit) * diffuse_strength
     }
-    fn specular(&self, scene: &Scene, hit: &Hit, ldir: &Vector, viewer: &Vector) -> Colour {
+    fn specular(&self, hit: &Hit, ldir: &Vector, viewer: &Vector) -> Colour {
         let reflection = hit.normal.reflection(ldir).normalised();
         let specular_strength = viewer.dot(&reflection).max(0.0).powf(self.shininess());
         Colour::white() * specular_strength
@@ -40,7 +40,7 @@ pub trait Phong: Send + Sync {
 // impl material for PhongT
 impl<T: Phong> Material for T {
     fn compute_once(&self, scene: &Scene, _viewer: &Ray, hit: &Hit, _depth: u8) -> Colour {
-        self.ambient(scene, hit)
+        self.ambient(hit)
     }
 
     fn compute_per_light(
@@ -50,7 +50,7 @@ impl<T: Phong> Material for T {
         hit: &Hit,
         ldir: &Vector,
     ) -> Colour {
-        self.diffuse(scene, hit, ldir) + self.specular(scene, hit, ldir, viewer)
+        self.diffuse(hit, ldir) + self.specular(hit, ldir, viewer)
     }
 
     fn normal(&self, tex_coords: &TexCoords) -> Option<Vector> {
@@ -101,5 +101,9 @@ impl Phong for Monochrome {
 impl PhotonMaterial for Monochrome {
     fn photon_tree(&self) -> &PhotonTree {
         &self.photon_tree
+    }
+
+    fn compute_photon(&self, scene: &PhotonScene, hit: &Hit, ldir: &Vector) -> Colour {
+        self.diffuse(hit, ldir)
     }
 }
