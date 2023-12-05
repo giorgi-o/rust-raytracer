@@ -1,31 +1,19 @@
-use super::{transform::Transform, vector::Vector};
+use super::{tex_coords::TexCoords, transform::Transform, vector::Vector};
 
 #[derive(Debug, Clone)]
 pub struct Vertex {
     pub x: f32,
     pub y: f32,
     pub z: f32,
-    pub w: f32,
-    pub normal: Option<Vector>,
 }
 
 impl Vertex {
-    pub const fn new(x: f32, y: f32, z: f32, w: f32) -> Self {
-        Self {
-            x,
-            y,
-            z,
-            w,
-            normal: None,
-        }
-    }
-
-    pub const fn new_xyz(x: f32, y: f32, z: f32) -> Self {
-        Self::new(x, y, z, 1.0)
+    pub const fn new(x: f32, y: f32, z: f32) -> Self {
+        Self { x, y, z }
     }
 
     pub const fn zero() -> Self {
-        Self::new(0.0, 0.0, 0.0, 1.0)
+        Self::new(0.0, 0.0, 0.0)
     }
 
     pub const fn xyz(&self) -> [f32; 3] {
@@ -47,31 +35,18 @@ impl Vertex {
     pub fn apply_transform(&mut self, transform: &Transform) {
         let matrix = &transform.matrix;
 
-        let x = matrix[0][0] * self.x
-            + matrix[0][1] * self.y
-            + matrix[0][2] * self.z
-            + matrix[0][3] * self.w;
-        let y = matrix[1][0] * self.x
-            + matrix[1][1] * self.y
-            + matrix[1][2] * self.z
-            + matrix[1][3] * self.w;
-        let z = matrix[2][0] * self.x
-            + matrix[2][1] * self.y
-            + matrix[2][2] * self.z
-            + matrix[2][3] * self.w;
-        let w = matrix[3][0] * self.x
-            + matrix[3][1] * self.y
-            + matrix[3][2] * self.z
-            + matrix[3][3] * self.w;
+        let x =
+            matrix[0][0] * self.x + matrix[0][1] * self.y + matrix[0][2] * self.z + matrix[0][3];
+        let y =
+            matrix[1][0] * self.x + matrix[1][1] * self.y + matrix[1][2] * self.z + matrix[1][3];
+        let z =
+            matrix[2][0] * self.x + matrix[2][1] * self.y + matrix[2][2] * self.z + matrix[2][3];
+        let w =
+            matrix[3][0] * self.x + matrix[3][1] * self.y + matrix[3][2] * self.z + matrix[3][3];
 
         self.x = x;
         self.y = y;
         self.z = z;
-        self.w = w;
-
-        if let Some(normal) = &mut self.normal {
-            normal.apply_transform(transform);
-        }
     }
 }
 
@@ -83,8 +58,6 @@ impl std::ops::Add<Vector> for Vertex {
             x: self.x + rhs.x,
             y: self.y + rhs.y,
             z: self.z + rhs.z,
-            w: self.w,
-            normal: None,
         }
     }
 }
@@ -105,14 +78,51 @@ impl std::ops::Sub<Vector> for Vertex {
             x: self.x - rhs.x,
             y: self.y - rhs.y,
             z: self.z - rhs.z,
-            w: self.w,
-            normal: None,
         }
     }
 }
 
 impl From<Vector> for Vertex {
     fn from(vector: Vector) -> Self {
-        Self::new_xyz(vector.x, vector.y, vector.z)
+        Self::new(vector.x, vector.y, vector.z)
+    }
+}
+
+#[derive(Clone)]
+pub struct RichVertex {
+    pub vertex: Vertex,
+    pub normal: Option<Vector>,
+    pub tex_coords: Option<TexCoords>,
+}
+
+impl RichVertex {
+    pub fn new(vertex: Vertex, normal: Option<Vector>, tex_coords: Option<TexCoords>) -> Self {
+        Self {
+            vertex,
+            normal,
+            tex_coords,
+        }
+    }
+
+    pub fn apply_transform(&mut self, transform: &Transform) {
+        self.vertex.apply_transform(transform);
+
+        if let Some(normal) = &mut self.normal {
+            normal.apply_transform(transform);
+        }
+    }
+}
+
+impl std::ops::Deref for RichVertex {
+    type Target = Vertex;
+
+    fn deref(&self) -> &Self::Target {
+        &self.vertex
+    }
+}
+
+impl From<Vertex> for RichVertex {
+    fn from(vertex: Vertex) -> Self {
+        Self::new(vertex, None, None)
     }
 }

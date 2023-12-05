@@ -2,7 +2,7 @@
 
 use std::{path::PathBuf, process::Command, time::Instant};
 
-use environments::{scene::Scene, environment::Environment};
+use environments::environment::Environment;
 
 use scene_file::{ParseError, SceneFile};
 
@@ -15,13 +15,13 @@ mod core {
     pub mod colour;
     pub mod framebuffer;
     pub mod hit;
+    pub mod photon;
+    pub mod photon_tree;
     pub mod ray;
     pub mod tex_coords;
     pub mod transform;
     pub mod vector;
     pub mod vertex;
-    pub mod photon;
-    pub mod photon_tree;
 }
 
 mod environments {
@@ -48,6 +48,7 @@ mod lights {
     pub mod directional_light;
     pub mod light;
     pub mod point_light;
+    pub mod directional_point_light;
 }
 
 mod objects {
@@ -60,7 +61,6 @@ mod objects {
     pub mod sphere_object;
     pub mod triangle_object;
 }
-
 
 mod scene_file;
 
@@ -103,12 +103,11 @@ fn build_scene() -> Result<Box<dyn Environment>, ParseError> {
 
 fn render() {
     // set random seed
-    
 
     let start = Instant::now();
 
-    let width = 1024;
-    let height = 1024;
+    let width = 512;
+    let height = 512;
 
     let mut scene = match build_scene() {
         Ok(scene) => scene,
@@ -120,7 +119,7 @@ fn render() {
     let build_scene_end = Instant::now();
 
     // "default" camera position
-    let position = Vertex::new_xyz(0.0, 3.0, 0.0);
+    let position = Vertex::new(0.0, 3.0, 0.0);
     let lookat = Vector::new(0.0, 0.5, 1.0).normalised();
     let up = Vector::new(0.0, lookat.z, -lookat.y);
     let fov = 40f32.to_radians();

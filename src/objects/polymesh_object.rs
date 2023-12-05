@@ -6,14 +6,21 @@ use std::{
 };
 
 use crate::{
-    core::{hit::{Hit, HitVec}, ray::Ray, transform::Transform, vector::Vector, vertex::Vertex},
-    materials::material::Material, hitvec,
+    core::{
+        hit::{Hit, HitVec},
+        ray::Ray,
+        transform::Transform,
+        vector::Vector,
+        vertex::{RichVertex, Vertex},
+    },
+    hitvec,
+    materials::material::Material,
 };
 
 use super::{object::Object, triangle_object::Triangle};
 
 pub struct PolyMesh {
-    vertices: Vec<Vertex>,
+    vertices: Vec<RichVertex>,
     triangles: Vec<Triangle>,
     normals: Vec<Vector>,
     smooth: bool,
@@ -68,7 +75,7 @@ impl PolyMesh {
                     let z = words[3]
                         .parse::<f32>()
                         .expect("Could not parse vertex z coordinate");
-                    this.vertices.push(Vertex::new_xyz(x, y, z));
+                    this.vertices.push(Vertex::new(x, y, z).into());
                 }
                 "vn" => {
                     let x = words[1]

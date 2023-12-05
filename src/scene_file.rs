@@ -3,7 +3,10 @@ use std::{collections::HashMap, path::PathBuf, sync::Arc};
 use crate::{
     core::{colour::Colour, vector::Vector, vertex::Vertex},
     environments::{environment::Environment, photon_scene::PhotonScene, scene::Scene},
-    lights::{directional_light::DirectionalLight, light::Light, point_light::PointLight},
+    lights::{
+        directional_light::DirectionalLight, directional_point_light::DPLight, light::Light,
+        point_light::PointLight,
+    },
     materials::{
         compound_material::CompoundMaterial, falsecolour_material::FalseColour,
         global_material::GlobalMaterial, material::Material, phong_material::Monochrome,
@@ -267,6 +270,12 @@ impl Paragraph {
                 self.get_attr_or("colour", AttributeValue::Float(1.0))
                     .as_colour()?,
             ),
+            "DirPoint" => DPLight::new(
+                self.get_attr("position")?.as_vertex()?,
+                self.get_attr("direction")?.as_vector()?,
+                self.get_attr_or("colour", AttributeValue::Float(1.0))
+                    .as_colour()?,
+            ),
             _ => bail!(self.start_line, "Invalid light class: {}", self.class),
         };
         Ok(light)
@@ -414,7 +423,7 @@ impl Attribute {
 
     fn as_vertex(&self) -> Result<Vertex> {
         let vector = self.as_vector()?;
-        Ok(Vertex::new_xyz(vector.x, vector.y, vector.z))
+        Ok(Vertex::new(vector.x, vector.y, vector.z))
     }
 
     fn as_float(&self) -> Result<f32> {

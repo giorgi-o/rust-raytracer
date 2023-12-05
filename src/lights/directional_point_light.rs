@@ -14,28 +14,39 @@ use crate::{
 
 use super::light::{Light, PhotonLight};
 
-pub struct PointLight {
+pub struct DPLight {
     position: Vertex,
+    direction: Vector,
     intensity: Colour,
 }
 
-impl PointLight {
-    pub fn new(position: Vertex, intensity: Colour) -> Box<Self> {
+impl DPLight {
+    pub fn new(position: Vertex, direction: Vector, intensity: Colour) -> Box<Self> {
         Box::new(Self {
             position,
+            direction,
             intensity,
         })
     }
 }
 
-impl Light for PointLight {
+impl Light for DPLight {
     fn get_direction(&self, surface: &Vertex) -> Option<Vector> {
         let direction = self.position.vector_to(surface);
+
+        if direction.dot(&self.direction) < 0.0 {
+            // angle between surface and light is greater than 90 degrees
+            return None;
+        }
+
         Some(direction.normalised())
     }
 
-    fn get_intensity(&self, _surface: &Vertex) -> Option<Colour> {
-        Some(self.intensity)
+    fn get_intensity(&self, surface: &Vertex) -> Option<Colour> {
+        // intensity decreases with angle
+        let direction = self.position.vector_to(surface);
+        let dot = direction.dot(&self.direction);
+        Some(self.intensity * dot)
     }
 
     fn photon_light(self: Box<Self>) -> Box<dyn PhotonLight> {
@@ -43,7 +54,7 @@ impl Light for PointLight {
     }
 }
 
-impl PhotonLight for PointLight {
+impl PhotonLight for DPLight {
     fn shoot_photons(
         &self,
         scene: &PhotonScene,
@@ -64,9 +75,13 @@ impl PhotonLight for PointLight {
                     rng.sample(distribution),
                     rng.sample(distribution),
                 );
-                if direction.len_sqrd() <= 1.0 {
-                    break direction;
+                if direction.len_sqrd() > 1.0 {
+                    continue;
                 }
+                if direction.dot(&self.direction) < 0.0 {
+                    continue;
+                }
+                break direction;
             };
 
             let photon = Photon::new(

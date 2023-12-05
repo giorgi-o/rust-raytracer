@@ -1,3 +1,5 @@
+use kd_tree::KdPoint;
+
 use crate::core::{colour::Colour, vector::Vector, vertex::Vertex};
 
 use super::ray::Ray;
@@ -32,5 +34,19 @@ impl Photon {
 
     pub fn ray(&self) -> Ray {
         Ray::new(self.position.clone(), self.direction)
+    }
+}
+
+impl KdPoint for Photon {
+    type Scalar = f32;
+    type Dim = typenum::U3;
+
+    fn at(&self, i: usize) -> Self::Scalar {
+        match i {
+            0 => self.position.x,
+            1 => self.position.y,
+            2 => self.position.z,
+            _ => unreachable!(),
+        }
     }
 }

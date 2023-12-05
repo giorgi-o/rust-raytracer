@@ -6,9 +6,7 @@ use std::{
 };
 
 use crate::{
-    core::{
-        colour::Colour, hit::Hit, photon_tree::PhotonTree, tex_coords::TexCoords, vector::Vector,
-    },
+    core::{colour::Colour, hit::Hit, tex_coords::TexCoords, vector::Vector},
     environments::photon_scene::PhotonScene,
     parse_path,
 };
@@ -114,8 +112,8 @@ impl Image {
     }
 
     fn get_uv(&self, u: f32, v: f32) -> Colour {
-        let x = (u.rem_euclid(1.0) * (self.width - 1) as f32).round() as u32;
-        let y = (v.rem_euclid(1.0) * (self.height - 1) as f32).round() as u32;
+        let x = (u.rem_euclid(1.0) * (self.width - 1) as f32).floor() as u32;
+        let y = (v.rem_euclid(1.0) * (self.height - 1) as f32).floor() as u32;
         self.get_xy(x, y)
     }
 
@@ -132,7 +130,6 @@ pub struct Texture {
     scale: f32,
     ambient_strength: f32,
     shininess: f32,
-    photon_tree: PhotonTree,
 }
 
 impl Texture {
@@ -150,7 +147,6 @@ impl Texture {
             scale,
             ambient_strength,
             shininess,
-            photon_tree: PhotonTree::new(),
         })
     }
 }
@@ -191,10 +187,6 @@ impl Phong for Texture {
 }
 
 impl PhotonMaterial for Texture {
-    fn photon_tree(&self) -> &PhotonTree {
-        &self.photon_tree
-    }
-
     fn compute_photon(&self, scene: &PhotonScene, hit: &Hit, ldir: &Vector) -> Colour {
         self.diffuse(hit, ldir)
     }

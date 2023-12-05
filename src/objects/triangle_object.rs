@@ -6,7 +6,7 @@ use crate::{
         ray::Ray,
         transform::Transform,
         vector::Vector,
-        vertex::Vertex,
+        vertex::{RichVertex, Vertex},
     },
     hitvec,
     materials::material::Material,
@@ -22,9 +22,9 @@ struct Barycentric {
 }
 
 pub struct Triangle {
-    pub a: Vertex,
-    pub b: Vertex,
-    pub c: Vertex,
+    pub a: RichVertex,
+    pub b: RichVertex,
+    pub c: RichVertex,
     pub ab: Vector,
     pub bc: Vector,
     pub ca: Vector,
@@ -41,9 +41,9 @@ pub struct Triangle {
 
 impl Triangle {
     pub fn new(
-        a: Vertex,
-        b: Vertex,
-        c: Vertex,
+        a: RichVertex,
+        b: RichVertex,
+        c: RichVertex,
         vertex_indices: (usize, usize, usize),
         material: Arc<dyn Material>,
         smooth: bool,

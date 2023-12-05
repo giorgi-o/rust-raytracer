@@ -53,10 +53,7 @@ impl Object for Plane {
     #[allow(non_snake_case)]
     fn intersect(&self, ray: &Ray) -> HitVec {
         let material = self.material.as_ref();
-        let (a, b, c) = (self.normal.x, self.normal.y, self.normal.z);
-        // let U =
-        //     a * ray.position.x + b * ray.position.y + c * ray.position.z + self.d;
-        // let V = a * ray.direction.x + b * ray.direction.y + c * ray.direction.z;
+
         let U = self.normal.dot(&ray.position.vector()) + self.d;
         let V = self.normal.dot(&ray.direction);
 
@@ -78,7 +75,7 @@ impl Object for Plane {
         if V > 0.0 {
             let hit1 = Hit::infinity(self, true, f32::NEG_INFINITY, material);
 
-            let mut normal = self.normal.negated();
+            let normal = self.normal.negated();
             let hit2 = Hit::new(
                 self,
                 false,

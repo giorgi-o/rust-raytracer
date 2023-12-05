@@ -1,12 +1,7 @@
 use crate::{
     core::{
-        colour::Colour,
-        hit::Hit,
-        photon::Photon,
-        photon_tree::{NeighbourPhotons, PhotonTree},
-        ray::Ray,
-        tex_coords::TexCoords,
-        vector::Vector, vertex::Vertex,
+        colour::Colour, hit::Hit, photon::Photon, photon_tree::PhotonTree, ray::Ray,
+        tex_coords::TexCoords, vector::Vector, vertex::Vertex,
     },
     environments::{photon_scene::PhotonScene, scene::Scene},
 };
@@ -32,22 +27,30 @@ pub trait Material: Send + Sync {
     }
 }
 
-struct PhotonBehaviour {
-    pub absorb_weight: f32,
-    pub diffuse_weight: f32,
-    pub specular_weight: f32,
+#[derive(Copy, Clone)]
+pub enum PhotonBehaviour {
+    Absorb,
+    Diffuse,
+    Specular,
 }
 
 pub trait PhotonMaterial: Material {
-    fn photon_tree(&self) -> &PhotonTree;
-    // fn photon_behaviour(&self) -> PhotonBehaviour;
+    // fn photon_tree(&self) -> &PhotonTree;
+
+    fn behaviour_weight(&self, behaviour: &PhotonBehaviour) -> f32 {
+        match behaviour {
+            PhotonBehaviour::Absorb => 0.6,
+            PhotonBehaviour::Diffuse => 0.3,
+            PhotonBehaviour::Specular => 0.1,
+        }
+    }
 
     fn compute_photon(&self, scene: &PhotonScene, hit: &Hit, ldir: &Vector) -> Colour;
 
-    fn photon_landed(&self, photon: Photon, _scene: &PhotonScene) {
-        self.photon_tree().insert(photon);
-    }
-    fn photons_in_radius(&self, position: &Vertex, radius: f32) -> NeighbourPhotons {
-        self.photon_tree().get_within_radius(position, radius)
-    }
+    // fn photon_landed(&self, photon: Photon, _scene: &PhotonScene) {
+    //     // self.photon_tree().insert(photon);
+    // }
+    // fn photons_in_radius(&self, position: &Vertex, radius: f32) -> NeighbourPhotons {
+    //     self.photon_tree().get_within_radius(position, radius)
+    // }
 }

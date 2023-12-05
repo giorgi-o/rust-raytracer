@@ -1,22 +1,28 @@
+use std::io::Write;
+
+use rand::seq::SliceRandom;
+
 use crate::{
     core::{
         colour::Colour,
-        hit::{Hit, HitVec},
+        hit::Hit,
         photon::{Photon, PhotonType},
         photon_tree::PhotonTree,
         ray::Ray,
-        vector::Vector, vertex::Vertex,
     },
     lights::light::{Light, PhotonLight},
+    materials::material::{PhotonBehaviour, PhotonMaterial},
     objects::object::Object,
 };
 
 use super::environment::{Environment, RaytraceResult};
 
+const PHOTONS_PER_LIGHT: usize = 100_000_000;
+
 pub struct PhotonScene {
     objects: Vec<Box<dyn Object>>,
     lights: Vec<Box<dyn PhotonLight>>,
-    photon_map: PhotonTree,
+    photon_map: Option<PhotonTree>,
 }
 
 impl PhotonScene {
@@ -24,33 +30,44 @@ impl PhotonScene {
         Self {
             objects: Vec::new(),
             lights: Vec::new(),
-            photon_map: PhotonTree::new(),
+            photon_map: None,
         }
     }
 
-    pub fn photontrace(&self, incoming_photon: Photon) {
-        let ray = incoming_photon.ray();
+    pub fn photontrace(&self, photon: Photon) -> Option<Photon> {
+        let ray = photon.ray();
         let Some(hit) = self.trace(&ray) else {
-            return;
+            return None;
         };
 
         let material = hit.material.photon_mapped();
-        // let photon_intensity = photon.intensity
-        //     * (material.compute_once(self, photon.direction, &hit, 0)
-        //         + material.compute_per_light(self, &ray.direction, &hit, &Vector::zero()));
-        let photon_intensity = material.compute_photon(self, &hit, &incoming_photon.direction);
-        // vary the position by a random amount (~0.001) to prevent issues with the kd tree
-        let landed_photon = Photon::new(
-            hit.position,
-            incoming_photon.direction,
+
+        // pick absorb, diffuse or specular based on weights
+        let mut rng = rand::thread_rng();
+        let choice = [
+            PhotonBehaviour::Absorb,
+            PhotonBehaviour::Diffuse,
+            PhotonBehaviour::Specular,
+        ]
+        .choose_weighted(&mut rng, |item| material.behaviour_weight(item))
+        .unwrap();
+
+        // None // for now
+        Some(self.absorb_photon(photon, &hit, material))
+    }
+
+    fn absorb_photon(&self, photon: Photon, hit: &Hit, material: &dyn PhotonMaterial) -> Photon {
+        // store photon in kd tree
+        let photon_intensity = material.compute_photon(self, hit, &photon.direction);
+        Photon::new(
+            hit.position.clone(),
+            photon.direction,
             photon_intensity,
             PhotonType::Diffuse,
-        );
-        // material.photon_landed(photon, self);
-        // println!("Inserting photon at position {:?}", landed_photon.position.vector());
-        self.photon_map.insert(landed_photon);
-        // todo probabilities of diffuse etc
+        )
     }
+
+
 }
 
 impl Environment for PhotonScene {
@@ -64,9 +81,46 @@ impl Environment for PhotonScene {
     }
 
     fn pre_render(&mut self) {
-        for light in self.lights.iter() {
-            light.shoot_photons(self, 1_000_000);
+        let mut photons = Vec::new();
+        let lights = std::mem::take(&mut self.lights);
+        for light in lights.iter() {
+            let light_photons = light.shoot_photons_mt(self, PHOTONS_PER_LIGHT as u32);
+            println!("Light emitted {} photons", light_photons.len());
+            photons.push(light_photons);
         }
+        self.lights = lights;
+
+        // print!("Flattening photon vec... (1/2)\r");
+        // let photons: Vec<Vec<Photon>> = photons.into_iter().flatten().collect();
+        // println!("Flattening photon vec... (2/2)");
+        // let photons: Vec<Photon> = photons.into_iter().flatten().collect();
+
+        let mut flat_photons = Vec::new();
+        let mut stdout = std::io::stdout().lock();
+        let mut i = 0;
+        let max_i = photons.len();
+        while let Some(mut vec) = photons.pop() {
+            i += 1;
+            let mut j = 0;
+            let max_j = vec.len();
+
+            while let Some(vec) = vec.pop() {
+                j += 1;
+                // print!("Flattening photon vec... ({i}/{max_i} {j}/{max_j})\r");
+                write!(
+                    stdout,
+                    "Flattening photon vec... ({i}/{max_i} {j}/{max_j})\r"
+                )
+                .unwrap();
+                stdout.flush().unwrap();
+
+                flat_photons.extend(vec);
+            }
+        }
+        flat_photons.shrink_to_fit();
+
+        println!("\nBuilding photon KD tree...");
+        self.photon_map = Some(PhotonTree::build(flat_photons));
     }
 
     fn raytrace(&self, ray: &Ray) -> RaytraceResult {
@@ -77,12 +131,32 @@ impl Environment for PhotonScene {
             };
         };
 
-        let neighbour_photons = self.photon_map.find_nearest(&hit.position, 100);
-        let colour: Colour = neighbour_photons
+        // let neighbour_photons = self.photon_map.find_nearest(&hit.position, 50);
+        let neighbour_photons = self
+            .photon_map
+            .as_ref()
+            .expect("Photon map not built")
+            .get_n_within_radius(&hit.position, 0.1, 5);
+        let neighbour_photons_len = neighbour_photons.len();
+        if neighbour_photons_len == 0 {
+            return RaytraceResult {
+                colour: Colour::black(),
+                depth: 0.0,
+            };
+        }
+
+        let furthest_photon_sqrd_distance = neighbour_photons
             .iter()
-            .map(|p| p.intensity)
-            .fold(Colour::black(), |acc, intensity| acc + intensity)
-            / neighbour_photons.len() as f32;
+            .max_by(|a, b| a.squared_distance.partial_cmp(&b.squared_distance).unwrap())
+            .unwrap()
+            .squared_distance;
+
+        let colour: Colour = neighbour_photons
+            .into_iter()
+            .fold(Colour::black(), |acc, item_and_distance| {
+                acc + item_and_distance.item.intensity
+            })
+            / (neighbour_photons_len as f32);
 
         RaytraceResult {
             colour,
