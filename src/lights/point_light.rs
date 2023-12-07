@@ -5,7 +5,7 @@ use rand::{distributions::Uniform, Rng};
 use crate::{
     core::{
         colour::Colour,
-        photon::{Photon, PhotonType},
+        photon::{InFlightPhoton, Photon, PhotonType},
         vector::Vector,
         vertex::Vertex,
     },
@@ -69,17 +69,15 @@ impl PhotonLight for PointLight {
                 }
             };
 
-            let photon = Photon::new(
+            let photon = InFlightPhoton::new(
                 self.position.clone(),
                 direction.normalised(),
                 self.intensity,
-                PhotonType::Diffuse,
+                PhotonType::Colour,
             );
 
-            let photon = scene.photontrace(photon);
-            if let Some(photon) = photon {
-                photons.push(photon);
-            }
+            let traced_photons = scene.photontrace(photon);
+            photons.extend(traced_photons);
 
             // print progress/ETA
             if first_thread && i % 10000 == 0 {

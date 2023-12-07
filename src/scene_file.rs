@@ -341,8 +341,8 @@ impl Paragraph {
                 self.get_attr("ior")?.as_float()?,
             ),
             "Global" => GlobalMaterial::new(
-                self.get_attr("reflect")?.as_colour()?,
-                self.get_attr("refract")?.as_colour()?,
+                self.get_attr("reflect")?.as_float()?,
+                self.get_attr("refract")?.as_float()?,
                 self.get_attr("ior")?.as_float()?,
             ),
             "Monochrome" => Monochrome::new(

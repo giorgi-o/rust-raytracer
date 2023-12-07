@@ -185,9 +185,3 @@ impl Phong for Texture {
         self
     }
 }
-
-impl PhotonMaterial for Texture {
-    fn compute_photon(&self, scene: &PhotonScene, hit: &Hit, ldir: &Vector) -> Colour {
-        self.diffuse(hit, ldir)
-    }
-}

@@ -4,12 +4,22 @@ use crate::{
         hit::{Hit, HitVec},
         ray::Ray,
     },
-    objects::object::Object, lights::light::Light,
+    lights::light::Light,
+    objects::object::Object,
 };
 
 pub struct RaytraceResult {
     pub colour: Colour,
     pub depth: f32,
+}
+
+impl RaytraceResult {
+    pub fn none() -> Self {
+        Self {
+            colour: Colour::black(),
+            depth: 0.0,
+        }
+    }
 }
 
 pub trait Environment: Send + Sync {

@@ -54,9 +54,9 @@ pub trait PhotonLight: Light {
         })
     }
 
-    fn shoot_photons(
-        &self,
-        scene: &PhotonScene,
+    fn shoot_photons<'a>(
+        &'a self,
+        scene: &'a PhotonScene,
         num_photons: u32,
         first_thread: bool,
     ) -> Vec<Photon>;

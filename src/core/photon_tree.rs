@@ -18,7 +18,8 @@ impl PhotonTree {
     }
 
     pub fn get_within_radius(&self, position: &Vertex, radius: f32) -> Vec<PhotonAndDistance> {
-        self.tree
+        let mut vec: Vec<PhotonAndDistance> = self
+            .tree
             .within_radius(&position.xyz(), radius)
             .into_iter()
             .map(|photon| {
@@ -28,7 +29,10 @@ impl PhotonTree {
                     squared_distance,
                 }
             })
-            .collect()
+            .collect();
+
+        vec.sort_unstable_by(|a, b| a.squared_distance.partial_cmp(&b.squared_distance).unwrap());
+        vec
     }
 
     pub fn find_nearest(&self, position: &Vertex, n: usize) -> Vec<PhotonAndDistance> {
@@ -42,7 +46,6 @@ impl PhotonTree {
         n: usize,
     ) -> Vec<PhotonAndDistance> {
         let mut vec = self.get_within_radius(position, radius);
-        vec.sort_unstable_by(|a, b| a.squared_distance.partial_cmp(&b.squared_distance).unwrap());
         vec.truncate(n);
         vec
     }

@@ -20,6 +20,37 @@ impl Vector {
         }
     }
 
+    pub fn random() -> Self {
+        use rand::distributions::Distribution;
+
+        let mut rng = rand::thread_rng();
+        thread_local! {
+            static DISTRIBUTION: rand::distributions::Uniform<f32> = rand::distributions::Uniform::new(-1.0, 1.0);
+        }
+
+        DISTRIBUTION.with(|distribution| loop {
+            let vec = Self::new(
+                distribution.sample(&mut rng),
+                distribution.sample(&mut rng),
+                distribution.sample(&mut rng),
+            );
+
+            if vec.len_sqrd() <= 1.0 {
+                return vec.normalised();
+            }
+        })
+    }
+
+    pub fn random_on_surface(normal: Vector) -> Self {
+        let mut vec = Self::random();
+
+        if vec.dot(&normal) < 0.0 {
+            vec.negate();
+        }
+
+        vec
+    }
+
     pub fn normalise(&mut self) {
         let length = self.length();
         self.x /= length;

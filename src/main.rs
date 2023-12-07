@@ -106,8 +106,8 @@ fn render() {
 
     let start = Instant::now();
 
-    let width = 512;
-    let height = 512;
+    let width = 1024;
+    let height = 1024;
 
     let mut scene = match build_scene() {
         Ok(scene) => scene,

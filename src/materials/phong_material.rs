@@ -1,11 +1,13 @@
 use std::sync::Arc;
 
 use crate::{
-    core::{colour::Colour, hit::Hit, ray::Ray, tex_coords::TexCoords, vector::Vector},
-    environments::{photon_scene::PhotonScene, scene::Scene},
+    core::{
+        colour::Colour, hit::Hit, photon::Photon, ray::Ray, tex_coords::TexCoords, vector::Vector,
+    },
+    environments::scene::Scene,
 };
 
-use super::material::{Material, PhotonMaterial, PhotonBehaviour};
+use super::material::{Material, PhotonMaterial};
 
 pub trait Phong: Send + Sync {
     fn colour_at_hit(&self, hit: &Hit) -> Colour;
@@ -91,8 +93,14 @@ impl Phong for Monochrome {
     }
 }
 
-impl PhotonMaterial for Monochrome {
-    fn compute_photon(&self, _scene: &PhotonScene, hit: &Hit, ldir: &Vector) -> Colour {
-        self.diffuse(hit, ldir)
+impl<T: Phong> PhotonMaterial for T {
+    fn bounced_photon(&self, photon: &Photon, hit: &Hit) -> Option<Colour> {
+        Some(self.diffuse(hit, &photon.incident) * photon.intensity)
+    }
+
+    fn render_vueon(&self, hit: &Hit, photon: &Photon, viewer: Vector) -> Colour {
+        let colour =
+            self.diffuse(hit, &photon.incident) + self.specular(hit, &photon.incident, &viewer);
+        colour * photon.intensity
     }
 }

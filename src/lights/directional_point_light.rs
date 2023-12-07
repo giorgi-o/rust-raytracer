@@ -5,7 +5,7 @@ use rand::{distributions::Uniform, Rng};
 use crate::{
     core::{
         colour::Colour,
-        photon::{Photon, PhotonType},
+        photon::{InFlightPhoton, Photon, PhotonType},
         vector::Vector,
         vertex::Vertex,
     },
@@ -55,8 +55,8 @@ impl Light for DPLight {
 }
 
 impl PhotonLight for DPLight {
-    fn shoot_photons(
-        &self,
+    fn shoot_photons<'a>(
+        &'a self,
         scene: &PhotonScene,
         num_photons: u32,
         first_thread: bool,
@@ -69,32 +69,17 @@ impl PhotonLight for DPLight {
         let start = Instant::now();
 
         for i in 0..num_photons {
-            let direction = loop {
-                let direction = Vector::new(
-                    rng.sample(distribution),
-                    rng.sample(distribution),
-                    rng.sample(distribution),
-                );
-                if direction.len_sqrd() > 1.0 {
-                    continue;
-                }
-                if direction.dot(&self.direction) < 0.0 {
-                    continue;
-                }
-                break direction;
-            };
+            let direction = Vector::random_on_surface(self.direction);
 
-            let photon = Photon::new(
+            let photon = InFlightPhoton::new(
                 self.position.clone(),
                 direction.normalised(),
                 self.intensity,
-                PhotonType::Diffuse,
+                PhotonType::Colour,
             );
 
-            let photon = scene.photontrace(photon);
-            if let Some(photon) = photon {
-                photons.push(photon);
-            }
+            let traced_photons = scene.photontrace(photon);
+            photons.extend(traced_photons);
 
             // print progress/ETA
             if first_thread && i % 10000 == 0 {
