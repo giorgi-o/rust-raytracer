@@ -5,7 +5,7 @@ use std::{
 
 use kd_tree::KdTree3;
 
-use super::{photon::Photon, vertex::Vertex};
+use super::{photon::Photon, vector::Vector, vertex::Vertex};
 
 pub struct PhotonTree {
     tree: KdTree3<Photon>,
@@ -17,10 +17,14 @@ impl PhotonTree {
         Self { tree }
     }
 
-    pub fn get_within_radius(&self, position: &Vertex, radius: f32) -> Vec<PhotonAndDistance> {
+    pub fn get_within_distance(&self, position: &Vertex, radius: f32) -> Vec<PhotonAndDistance> {
+        let radius = Vector::new(radius, radius, radius);
+        let topleft = position.clone() - radius;
+        let bottomright = position.clone() + radius;
+
         let mut vec: Vec<PhotonAndDistance> = self
             .tree
-            .within_radius(&position.xyz(), radius)
+            .within(&[topleft, bottomright])
             .into_iter()
             .map(|photon| {
                 let squared_distance = (photon.position.vector() - position.vector()).len_sqrd();
@@ -45,7 +49,7 @@ impl PhotonTree {
         radius: f32,
         n: usize,
     ) -> Vec<PhotonAndDistance> {
-        let mut vec = self.get_within_radius(position, radius);
+        let mut vec = self.get_within_distance(position, radius);
         vec.truncate(n);
         vec
     }

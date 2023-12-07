@@ -55,7 +55,7 @@ impl Light for DPLight {
 }
 
 impl PhotonLight for DPLight {
-    fn shoot_photons<'a>(
+    fn shoot_regular_photons<'a>(
         &'a self,
         scene: &PhotonScene,
         num_photons: u32,
@@ -82,8 +82,8 @@ impl PhotonLight for DPLight {
             photons.extend(traced_photons);
 
             // print progress/ETA
-            if first_thread && i % 10000 == 0 {
-                let progress = i as f32 / num_photons as f32;
+            if first_thread && (i % 10000 == 0 || i == num_photons - 1) {
+                let progress = (i + 1) as f32 / num_photons as f32;
                 let elapsed = start.elapsed().as_secs_f32();
                 let eta = elapsed / progress - elapsed;
                 let percent = (progress * 100.0) as u32;

@@ -88,6 +88,20 @@ impl From<Vector> for Vertex {
     }
 }
 
+impl kd_tree::KdPoint for Vertex {
+    type Scalar = f32;
+    type Dim = typenum::U3;
+
+    fn at(&self, i: usize) -> Self::Scalar {
+        match i {
+            0 => self.x,
+            1 => self.y,
+            2 => self.z,
+            _ => unreachable!(),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct RichVertex {
     pub vertex: Vertex,

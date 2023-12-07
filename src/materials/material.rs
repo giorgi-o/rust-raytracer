@@ -42,13 +42,6 @@ pub enum PhotonBehaviour {
     ReflectOrRefract,
 }
 
-// pub enum VueonRenderResult {
-//     Colour(Colour),
-//     Bounced {
-//         reflect: Option<Ray>,
-//         refract: Option<Ray>,
-//     }
-// }
 
 pub struct RefractionResult {
     pub ray: Ray,

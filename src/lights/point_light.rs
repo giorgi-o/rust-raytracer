@@ -44,7 +44,7 @@ impl Light for PointLight {
 }
 
 impl PhotonLight for PointLight {
-    fn shoot_photons(
+    fn shoot_regular_photons(
         &self,
         scene: &PhotonScene,
         num_photons: u32,

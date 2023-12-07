@@ -1,5 +1,5 @@
 use crate::{
-    core::{colour::Colour, photon::Photon, vector::Vector, vertex::Vertex},
+    core::{colour::Colour, photon::Photon, vector::Vector, vertex::Vertex, ray::Ray},
     environments::photon_scene::PhotonScene,
 };
 
@@ -34,8 +34,9 @@ pub trait PhotonLight: Light {
                     num_photons += extra_photons;
                 }
 
-                let thread =
-                    scope.spawn(move || self.shoot_photons(scene, num_photons, thread_index == 0));
+                let thread = scope.spawn(move || {
+                    self.shoot_regular_photons(scene, num_photons, thread_index == 0)
+                });
                 threads.push(thread);
             }
 
@@ -54,9 +55,17 @@ pub trait PhotonLight: Light {
         })
     }
 
-    fn shoot_photons<'a>(
+    fn shoot_regular_photons<'a>(
         &'a self,
         scene: &'a PhotonScene,
+        num_photons: u32,
+        first_thread: bool,
+    ) -> Vec<Photon>;
+
+    fn shoot_caustic_photons<'a>(
+        &'a self,
+        scene: &'a PhotonScene,
+        caustic_rays: &[Ray],
         num_photons: u32,
         first_thread: bool,
     ) -> Vec<Photon>;

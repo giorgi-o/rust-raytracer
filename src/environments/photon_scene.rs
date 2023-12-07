@@ -14,7 +14,7 @@ use crate::{
         vertex::Vertex,
     },
     lights::light::{Light, PhotonLight},
-    materials::material::{PhotonBehaviour, PhotonMaterial},
+    materials::material::{Material, PhotonBehaviour, PhotonMaterial},
     objects::object::Object,
 };
 
@@ -26,7 +26,7 @@ const CAUSTIC_PHOTONS_PER_LIGHT: usize = 1_000_000;
 pub struct PhotonScene {
     objects: Vec<Box<dyn Object>>,
     lights: Vec<Box<dyn PhotonLight>>,
-    photon_map: Option<PhotonTree>,
+    regular_photon_map: Option<PhotonTree>,
     caustic_photon_map: Option<PhotonTree>,
 }
 
@@ -35,9 +35,64 @@ impl PhotonScene {
         Self {
             objects: Vec::new(),
             lights: Vec::new(),
-            photon_map: None,
+            regular_photon_map: None,
             caustic_photon_map: None,
         }
+    }
+
+    fn build_regular_photon_map(&mut self) {
+        self.build_photon_map(|this, light| light.shoot_photons_mt(this, PHOTONS_PER_LIGHT as u32));
+    }
+
+    fn shoot_regular_photons(&self)
+
+    fn build_photon_map(
+        &mut self,
+        shoot_photons: impl Fn(&Self, &Box<dyn PhotonLight>) -> Vec<Vec<Photon>>,
+    ) {
+        let mut photons = Vec::new();
+
+        let lights = std::mem::take(&mut self.lights);
+        for light in lights.iter() {
+            // let light_photons = light.shoot_photons_mt(self, PHOTONS_PER_LIGHT as u32);
+            let light_photons = shoot_photons(self, light);
+
+            println!("Light emitted {} photons", light_photons.len());
+            photons.push(light_photons);
+        }
+        self.lights = lights;
+
+        let photons = self.flatten_photons(photons);
+
+        println!("\nBuilding photon KD tree...");
+        self.regular_photon_map = Some(PhotonTree::build(photons));
+    }
+
+    fn flatten_photons(&self, mut photons: Vec<Vec<Vec<Photon>>>) -> Vec<Photon> {
+        let mut flat_photons = Vec::new();
+        let mut stdout = std::io::stdout().lock();
+        let mut i = 0;
+        let max_i = photons.len();
+        while let Some(mut vec_vec) = photons.pop() {
+            i += 1;
+            let mut j = 0;
+            let max_j = vec_vec.len();
+
+            while let Some(vec) = vec_vec.pop() {
+                j += 1;
+                write!(
+                    stdout,
+                    "Flattening photon vec... ({i}/{max_i} {j}/{max_j})\r"
+                )
+                .unwrap();
+                stdout.flush().unwrap();
+
+                flat_photons.extend(vec);
+            }
+        }
+
+        flat_photons.shrink_to_fit();
+        flat_photons
     }
 
     pub fn photontrace(&self, photon: InFlightPhoton) -> Vec<Photon> {
@@ -66,38 +121,7 @@ impl PhotonScene {
             PhotonBehaviour::Diffuse => self.diffuse_photon(&absorbed_photon, &hit),
             PhotonBehaviour::Specular => self.specular_photon(&absorbed_photon, &hit),
             PhotonBehaviour::ReflectOrRefract => {
-                let reflect_direction = hit
-                    .normal
-                    .reflection(&absorbed_photon.incident)
-                    .normalised();
-                let reflected_photon = || {
-                    InFlightPhoton::new(
-                        hit.position.clone() + reflect_direction * 0.0001,
-                        reflect_direction,
-                        absorbed_photon.intensity,
-                        PhotonType::Colour,
-                    )
-                };
-
-                let Some(refract_result) = material.refracted_direction(&hit, ray.direction)
-                else {
-                    return self.photontrace(reflected_photon());
-                };
-
-                // pick reflection or refraction
-                let refract_chance = material.refract_chance(refract_result.kr);
-                let should_refract = rng.gen_bool(refract_chance as f64);
-
-                if should_refract {
-                    self.photontrace(InFlightPhoton::new(
-                        refract_result.ray.position,
-                        refract_result.ray.direction,
-                        absorbed_photon.intensity,
-                        PhotonType::Colour,
-                    ))
-                } else {
-                    self.photontrace(reflected_photon())
-                }
+                self.reflect_or_refract_photon(&absorbed_photon, &ray, &hit, material)
             }
         };
 
@@ -191,6 +215,44 @@ impl PhotonScene {
         self.photontrace(photon)
     }
 
+    fn reflect_or_refract_photon(
+        &self,
+        photon: &Photon,
+        ray: &Ray,
+        hit: &Hit,
+        material: &dyn PhotonMaterial,
+    ) -> Vec<Photon> {
+        let reflect_direction = hit.normal.reflection(&photon.incident).normalised();
+        let reflected_photon = || {
+            InFlightPhoton::new(
+                hit.position.clone() + reflect_direction * 0.0001,
+                reflect_direction,
+                photon.intensity,
+                PhotonType::Caustic,
+            )
+        };
+
+        let Some(refract_result) = material.refracted_direction(&hit, ray.direction) else {
+            return self.photontrace(reflected_photon());
+        };
+
+        // pick reflection or refraction
+        let refract_chance = material.refract_chance(refract_result.kr);
+        let mut rng = rand::thread_rng();
+        let should_refract = rng.gen_bool(refract_chance as f64);
+
+        if should_refract {
+            self.photontrace(InFlightPhoton::new(
+                refract_result.ray.position,
+                refract_result.ray.direction,
+                photon.intensity,
+                PhotonType::Caustic,
+            ))
+        } else {
+            self.photontrace(reflected_photon())
+        }
+    }
+
     fn vueontrace(&self, vueon: InFlightPhoton) -> RaytraceResult {
         let ray = vueon.ray();
         let Some(hit) = self.trace(&ray) else {
@@ -209,9 +271,6 @@ impl PhotonScene {
                 surface_colour = material.render_vueon(&hit, &photon, -vueon.direction);
             }
         }
-        // let vueon = photon.landed(hit.position.clone());
-        // let surface_colour =
-        //     material.render_vueon(&hit, &vueon, &hit, -ray.direction) * surface_weight;
 
         // calculate reflection colour
         let reflect_weight = material.behaviour_weight(&PhotonBehaviour::ReflectOrRefract);
@@ -250,10 +309,10 @@ impl PhotonScene {
 
     fn average_photon_at(&self, hit: &Hit) -> Option<Photon> {
         let mut neighbour_photons = self
-            .photon_map
+            .regular_photon_map
             .as_ref()
             .expect("Photon map not built")
-            .get_within_radius(&hit.position, 0.1);
+            .get_within_distance(&hit.position, 0.1);
         let photons_in_radius = neighbour_photons.len();
         if photons_in_radius == 0 {
             return None;
@@ -299,57 +358,10 @@ impl Environment for PhotonScene {
     }
 
     fn pre_render(&mut self) {
-        let mut photons = Vec::new();
-        let lights = std::mem::take(&mut self.lights);
-        for light in lights.iter() {
-            let light_photons = light.shoot_photons_mt(self, PHOTONS_PER_LIGHT as u32);
-            println!("Light emitted {} photons", light_photons.len());
-            photons.push(light_photons);
-        }
-        self.lights = lights;
-
-        // print!("Flattening photon vec... (1/2)\r");
-        // let photons: Vec<Vec<Photon>> = photons.into_iter().flatten().collect();
-        // println!("Flattening photon vec... (2/2)");
-        // let photons: Vec<Photon> = photons.into_iter().flatten().collect();
-
-        let mut flat_photons = Vec::new();
-        let mut stdout = std::io::stdout().lock();
-        let mut i = 0;
-        let max_i = photons.len();
-        while let Some(mut vec_vec) = photons.pop() {
-            i += 1;
-            let mut j = 0;
-            let max_j = vec_vec.len();
-
-            while let Some(vec) = vec_vec.pop() {
-                j += 1;
-                // print!("Flattening photon vec... ({i}/{max_i} {j}/{max_j})\r");
-                write!(
-                    stdout,
-                    "Flattening photon vec... ({i}/{max_i} {j}/{max_j})\r"
-                )
-                .unwrap();
-                stdout.flush().unwrap();
-
-                flat_photons.extend(vec);
-            }
-        }
-        flat_photons.shrink_to_fit();
-
-        println!("\nBuilding photon KD tree...");
-        self.photon_map = Some(PhotonTree::build(flat_photons));
+        self.build_regular_photon_map();
     }
 
     fn raytrace(&self, ray: &Ray) -> RaytraceResult {
-        // let Some(hit) = self.trace(ray) else {
-        //     return RaytraceResult {
-        //         colour: Colour::black(),
-        //         depth: 0.0,
-        //     };
-        // };
-
-        // let colour = material.render_vueon(&photon, &hit, -ray.direction);
         let vueon = InFlightPhoton::new(
             ray.position.clone(),
             ray.direction,
