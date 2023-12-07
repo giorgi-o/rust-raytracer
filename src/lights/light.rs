@@ -1,5 +1,5 @@
 use crate::{
-    core::{colour::Colour, photon::Photon, vector::Vector, vertex::Vertex, ray::Ray},
+    core::{colour::Colour, photon::Photon, ray::Ray, vector::Vector, vertex::Vertex},
     environments::photon_scene::PhotonScene,
 };
 
@@ -19,7 +19,12 @@ pub trait Light: Send + Sync {
 }
 
 pub trait PhotonLight: Light {
-    fn shoot_photons_mt(&self, scene: &PhotonScene, num_photons: u32) -> Vec<Vec<Photon>> {
+    fn shoot_photons_mt(
+        &self,
+        scene: &PhotonScene,
+        num_photons: u32,
+        caustic_photons: Option<&[Photon]>,
+    ) -> Vec<Vec<Photon>> {
         let num_threads = std::thread::available_parallelism().map_or(4, |n| n.get()) as u32;
         let photons_per_thread = num_photons / num_threads;
         let extra_photons = num_photons % num_threads;
@@ -34,9 +39,21 @@ pub trait PhotonLight: Light {
                     num_photons += extra_photons;
                 }
 
-                let thread = scope.spawn(move || {
-                    self.shoot_regular_photons(scene, num_photons, thread_index == 0)
-                });
+                let first_thread = thread_index == 0;
+                let thread_fn = move || {
+                    if let Some(caustic_photons) = caustic_photons {
+                        self.shoot_caustic_photons(
+                            scene,
+                            caustic_photons,
+                            num_photons,
+                            first_thread,
+                        )
+                    } else {
+                        self.shoot_regular_photons(scene, num_photons, first_thread)
+                    }
+                };
+
+                let thread = scope.spawn(thread_fn);
                 threads.push(thread);
             }
 
@@ -65,7 +82,7 @@ pub trait PhotonLight: Light {
     fn shoot_caustic_photons<'a>(
         &'a self,
         scene: &'a PhotonScene,
-        caustic_rays: &[Ray],
+        caustic_photons: &[Photon],
         num_photons: u32,
         first_thread: bool,
     ) -> Vec<Photon>;

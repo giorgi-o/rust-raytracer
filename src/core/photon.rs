@@ -4,7 +4,7 @@ use crate::core::{colour::Colour, vector::Vector, vertex::Vertex};
 
 use super::ray::Ray;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq, Eq)]
 pub enum PhotonType {
     Colour,
     Shadow,

@@ -1,4 +1,4 @@
-use std::io::Write;
+use std::{io::Write, sync::Mutex, thread};
 
 use kd_tree::ItemAndDistance;
 use rand::{distributions::Uniform, seq::SliceRandom, Rng};
@@ -40,40 +40,92 @@ impl PhotonScene {
         }
     }
 
-    fn build_regular_photon_map(&mut self) {
-        self.build_photon_map(|this, light| light.shoot_photons_mt(this, PHOTONS_PER_LIGHT as u32));
+    fn build_photon_maps(&mut self) {
+        // returns caustic photons encountered while photon tracing
+
+        let (regular_photons, caustic_photons) = self.shoot_photons(|this, light| {
+            let photons = light.shoot_photons_mt(this, PHOTONS_PER_LIGHT as u32, None);
+
+            let (caustic_photons, regular_photons): (Vec<Photon>, Vec<Photon>) = photons
+                .into_iter()
+                .flatten()
+                .partition(|photon| photon.photon_type == PhotonType::Caustic);
+
+            let more_caustic_photons = light.shoot_photons_mt(
+                this,
+                CAUSTIC_PHOTONS_PER_LIGHT as u32,
+                Some(caustic_photons.as_slice()),
+            );
+            let more_caustic_photons = this.flatten_photons(more_caustic_photons);
+
+            let caustic_photons = caustic_photons
+                .into_iter()
+                .chain(more_caustic_photons)
+                .collect();
+
+            (regular_photons, caustic_photons)
+        });
+
+        println!("Building KD trees...");
+        // self.regular_photon_map = Some(PhotonTree::build(regular_photons));
+        let regular_photon_map = thread::spawn(move || {
+            let regular_photon_map = PhotonTree::build(regular_photons);
+            println!("Regular photon map built");
+            regular_photon_map
+        });
+        let caustic_photon_map = thread::spawn(move || {
+            let caustic_photon_map = PhotonTree::build(caustic_photons);
+            println!("Caustic photon map built");
+            caustic_photon_map
+        });
+
+        self.regular_photon_map = Some(regular_photon_map.join().unwrap());
+        self.caustic_photon_map = Some(caustic_photon_map.join().unwrap());
     }
 
-    fn shoot_regular_photons(&self)
-
-    fn build_photon_map(
+    fn shoot_photons(
         &mut self,
-        shoot_photons: impl Fn(&Self, &Box<dyn PhotonLight>) -> Vec<Vec<Photon>>,
-    ) {
-        let mut photons = Vec::new();
+        shoot_photons: impl Fn(
+            &Self,
+            &Box<dyn PhotonLight>,
+        ) -> (
+            Vec<Photon>, /* regular */
+            Vec<Photon>, /* caustic */
+        ),
+    ) -> (Vec<Photon>, Vec<Photon>) {
+        let mut regular_photons = Vec::new();
+        let mut caustic_photons = Vec::new();
 
         let lights = std::mem::take(&mut self.lights);
         for light in lights.iter() {
             // let light_photons = light.shoot_photons_mt(self, PHOTONS_PER_LIGHT as u32);
             let light_photons = shoot_photons(self, light);
 
-            println!("Light emitted {} photons", light_photons.len());
-            photons.push(light_photons);
+            regular_photons.push(light_photons.0);
+            caustic_photons.push(light_photons.1);
         }
         self.lights = lights;
 
-        let photons = self.flatten_photons(photons);
+        let regular_photons = self.flatten_photons(regular_photons);
+        let caustic_photons = self.flatten_photons(caustic_photons);
 
-        println!("\nBuilding photon KD tree...");
-        self.regular_photon_map = Some(PhotonTree::build(photons));
+        (regular_photons, caustic_photons)
     }
 
-    fn flatten_photons(&self, mut photons: Vec<Vec<Vec<Photon>>>) -> Vec<Photon> {
+    fn flatten_photons(&self, mut photons: Vec<Vec<Photon>>) -> Vec<Photon> {
+        if photons.is_empty() {
+            return Vec::new();
+        }
+        if photons.len() == 1 {
+            return photons.pop().unwrap();
+        }
+
         let mut flat_photons = Vec::new();
         let mut stdout = std::io::stdout().lock();
         let mut i = 0;
         let max_i = photons.len();
-        while let Some(mut vec_vec) = photons.pop() {
+        // yes this is stupid, it was refactored in a hurry. TODO clean up
+        if let Some(mut vec_vec) = Some(photons) {
             i += 1;
             let mut j = 0;
             let max_j = vec_vec.len();
@@ -90,6 +142,7 @@ impl PhotonScene {
                 flat_photons.extend(vec);
             }
         }
+        writeln!(stdout).unwrap();
 
         flat_photons.shrink_to_fit();
         flat_photons
@@ -114,13 +167,14 @@ impl PhotonScene {
         .choose_weighted(&mut rng, |item| material.behaviour_weight(item))
         .unwrap();
 
-        let (absorbed_photon, shadow_photons) = self.absorb_photon(photon, &hit);
+        let (mut absorbed_photon, shadow_photons) = self.absorb_photon(photon, &hit);
 
         let bounced_photons = match choice {
             PhotonBehaviour::Absorb => Vec::new(),
             PhotonBehaviour::Diffuse => self.diffuse_photon(&absorbed_photon, &hit),
             PhotonBehaviour::Specular => self.specular_photon(&absorbed_photon, &hit),
             PhotonBehaviour::ReflectOrRefract => {
+                absorbed_photon.photon_type = PhotonType::Caustic;
                 self.reflect_or_refract_photon(&absorbed_photon, &ray, &hit, material)
             }
         };
@@ -308,8 +362,33 @@ impl PhotonScene {
     }
 
     fn average_photon_at(&self, hit: &Hit) -> Option<Photon> {
-        let mut neighbour_photons = self
-            .regular_photon_map
+        let photon = self.average_photon_of_type_at(hit, false);
+        let Some((caustic_photon, caustic_photon_count)) =
+            self.average_photon_of_type_at(hit, true)
+        else {
+            return photon.map(|(photon, _)| photon);
+        };
+        let Some((mut photon, regular_photon_count)) = photon else {
+            return Some(caustic_photon);
+        };
+
+        photon.intensity += caustic_photon.intensity
+            * (caustic_photon_count / (caustic_photon_count + regular_photon_count));
+
+        Some(photon)
+    }
+
+    fn average_photon_of_type_at(
+        &self,
+        hit: &Hit,
+        caustic: bool,
+    ) -> Option<(Photon, f32 /* photon count at hit */)> {
+        let photon_map = if caustic {
+            &self.caustic_photon_map
+        } else {
+            &self.regular_photon_map
+        };
+        let mut neighbour_photons = photon_map
             .as_ref()
             .expect("Photon map not built")
             .get_within_distance(&hit.position, 0.1);
@@ -343,7 +422,7 @@ impl PhotonScene {
             PhotonType::Colour,
         );
 
-        Some(photon)
+        Some((photon, neighbour_photons_len))
     }
 }
 
@@ -358,7 +437,7 @@ impl Environment for PhotonScene {
     }
 
     fn pre_render(&mut self) {
-        self.build_regular_photon_map();
+        self.build_photon_maps();
     }
 
     fn raytrace(&self, ray: &Ray) -> RaytraceResult {

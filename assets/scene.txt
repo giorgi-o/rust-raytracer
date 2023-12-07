@@ -80,12 +80,12 @@ object Cuboid
 
 # sphere
 object Sphere
-   centre 1.0 1.0 4.0
+   centre 1.0 2.0 4.0
    radius 1.0
    material Global
        reflect 1.0
        refract 1.0
-       ior 2.0
+       ior 1.3
 
 
 # cube
