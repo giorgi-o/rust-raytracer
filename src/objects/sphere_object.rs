@@ -59,7 +59,7 @@ impl Object for Sphere {
                 normal.negate();
             }
 
-            let theta = (-normal.x.atan2(normal.z)) + PI; // longitude
+            let theta = (normal.x.atan2(normal.z)) + PI; // longitude
             let phi = (-normal.y).acos(); // latitude
             let u = theta / (2.0 * PI);
             let v = (PI - phi) / PI;

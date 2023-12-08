@@ -1,0 +1,44 @@
+scene Scene
+
+camera Camera
+    position 0.0 0.0 -4.5
+
+# light
+light Point
+    direction 0.0 -0.8 0.8
+    position -0.2 0.0 -2.0
+    colour 3.0
+
+# ax^2 + 2bxy + 2cxz + 2dx + ey^2 + 2fyz + 2gy + hz^2 + 2iz + j = 0
+
+# sphere
+object Quadratic
+    a 2.0
+    e 2.0
+    h 2.0
+    j -1.0
+    translate 2.3 -0.0 0.0
+    material Monochrome
+        colour 1.0 0.0 0.0
+        shininess 100.0
+
+# ellipsoid
+object Quadratic
+    a 3.0
+    e 8.0
+    h 1.0
+    j -1.0
+    translate 0.65 0.0 0.0
+    material Monochrome
+        colour 0.0 1.0 0.0
+        shininess 100.0
+
+# cylinder
+object Quadratic
+    a 1.0
+    e 1.0
+    j -1.0
+    translate -2.5 0.0 0.0
+    material Monochrome
+        colour 0.0 0.0 1.0
+        shininess 100.0

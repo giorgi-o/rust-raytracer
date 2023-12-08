@@ -21,11 +21,11 @@ impl Vector {
     }
 
     pub fn random() -> Self {
-        use rand::distributions::Distribution;
+        use rand::distributions::{Distribution, Uniform};
 
         let mut rng = rand::thread_rng();
         thread_local! {
-            static DISTRIBUTION: rand::distributions::Uniform<f32> = rand::distributions::Uniform::new(-1.0, 1.0);
+            static DISTRIBUTION: Uniform<f32> = Uniform::new(-1.0, 1.0);
         }
 
         DISTRIBUTION.with(|distribution| loop {
@@ -79,7 +79,7 @@ impl Vector {
         self.x * other.x + self.y * other.y + self.z * other.z
     }
 
-    pub fn reflection(&self, initial: &Self) -> Self {
+    pub fn reflection(&self /* normal */, initial: &Self) -> Self {
         let d = self.dot(initial) * 2.0;
 
         Self {

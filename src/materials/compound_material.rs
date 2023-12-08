@@ -10,8 +10,7 @@ use crate::{
 use super::{
     global_material::GlobalMaterial,
     material::{Material, PhotonBehaviour, PhotonMaterial, RefractionResult},
-    phong_material::{Monochrome, Phong},
-    texture::Texture,
+    phong_material::Monochrome,
 };
 
 pub struct CompoundMaterial {
@@ -36,8 +35,8 @@ impl CompoundMaterial {
             .map(|material| material.photon_mapped())
     }
 
-    pub fn new_simple(colour: Colour, reflectiveness: f32) -> Arc<Self> {
-        let phong = Monochrome::new(colour, 0.1, 100.0);
+    pub fn new_simple(colour: Colour, reflectiveness: f32, shininess: f32) -> Arc<Self> {
+        let phong = Monochrome::new(colour, 0.1, shininess);
 
         let global = GlobalMaterial::new(reflectiveness, 0.0, 1.0);
 
@@ -47,9 +46,14 @@ impl CompoundMaterial {
         Arc::new(compound)
     }
 
-    pub fn new_translucent(colour: Colour, transparency: f32, ior: f32) -> Arc<Self> {
+    pub fn new_translucent(
+        colour: Colour,
+        transparency: f32,
+        ior: f32,
+        shininess: f32,
+    ) -> Arc<Self> {
         let opaqueness = 1.0 - transparency;
-        let phong = Monochrome::new(colour * opaqueness, 0.1, 100.0);
+        let phong = Monochrome::new(colour * opaqueness, 0.1, shininess);
 
         let global = GlobalMaterial::new(transparency, transparency, ior);
 
@@ -67,6 +71,7 @@ impl Material for CompoundMaterial {
             .fold(Colour::black(), |acc, material| {
                 acc + material.compute_once(scene, viewer, hit, depth)
             })
+            / self.materials.len() as f32
     }
 
     fn compute_per_light(
@@ -81,6 +86,7 @@ impl Material for CompoundMaterial {
             .fold(Colour::black(), |acc, material| {
                 acc + material.compute_per_light(scene, viewer, hit, ldir)
             })
+            / self.materials.len() as f32
     }
 
     fn normal(&self, tex_coords: &TexCoords) -> Option<Vector> {

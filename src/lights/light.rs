@@ -1,5 +1,5 @@
 use crate::{
-    core::{colour::Colour, photon::Photon, ray::Ray, vector::Vector, vertex::Vertex},
+    core::{colour::Colour, photon::Photon, vector::Vector, vertex::Vertex},
     environments::photon_scene::PhotonScene,
 };
 

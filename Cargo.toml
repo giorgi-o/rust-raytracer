@@ -7,8 +7,6 @@ edition = "2021"
 
 [dependencies]
 rand = "0.8.5"
-# kiddo = { git = "https://github.com/sdd/kiddo"}
-# kiddo = "3.0.0"
 kd-tree = "0.5.1"
 typenum = "1.17.0"
 

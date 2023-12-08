@@ -1,9 +1,10 @@
+#![allow(unused_variables)]
+
 use crate::{
     core::{
-        colour::Colour, hit::Hit, photon::Photon, photon_tree::PhotonTree, ray::Ray,
-        tex_coords::TexCoords, vector::Vector, vertex::Vertex,
+        colour::Colour, hit::Hit, photon::Photon, ray::Ray, tex_coords::TexCoords, vector::Vector,
     },
-    environments::{photon_scene::PhotonScene, scene::Scene},
+    environments::scene::Scene,
 };
 
 pub trait Material: Send + Sync {
@@ -41,7 +42,6 @@ pub enum PhotonBehaviour {
     Specular,
     ReflectOrRefract,
 }
-
 
 pub struct RefractionResult {
     pub ray: Ray,

@@ -6,10 +6,7 @@ use environments::environment::Environment;
 
 use scene_file::{ParseError, SceneFile};
 
-use crate::{
-    cameras::{camera::Camera, full_camera::FullCamera},
-    core::{vector::Vector, vertex::Vertex},
-};
+use crate::cameras::{camera::Camera, full_camera::FullCamera};
 
 mod core {
     pub mod colour;
@@ -46,9 +43,9 @@ mod materials {
 
 mod lights {
     pub mod directional_light;
+    pub mod directional_point_light;
     pub mod light;
     pub mod point_light;
-    pub mod directional_point_light;
 }
 
 mod objects {
@@ -73,17 +70,23 @@ fn parse_path(path: &str) -> PathBuf {
 }
 
 fn main() {
+    // get txt filename from first argv
+    let scene_filename = std::env::args()
+        .nth(1)
+        // .unwrap_or("assets/scene.txt".to_string());
+        .unwrap_or("assets/scenes/scene.txt".to_string());
+
     // when assets/scene.txt changes, re-render
     let get_last_modified = || {
-        std::fs::metadata("assets/scene.txt")
-            .expect("Failed to get metadata for assets/scene.txt")
+        std::fs::metadata(&scene_filename)
+            .expect("Failed to get metadata for scene file")
             .modified()
-            .expect("Failed to get modified time for assets/scene.txt")
+            .expect("Failed to get modified time for scene file")
     };
 
     loop {
-        render();
-        println!("Waiting for changes to assets/scene.txt...");
+        render(&scene_filename);
+        println!("Waiting for changes to {scene_filename}...");
 
         let last_modified = get_last_modified();
 
@@ -97,19 +100,16 @@ fn main() {
     }
 }
 
-fn build_scene() -> Result<Box<dyn Environment>, ParseError> {
-    SceneFile::from_path(&parse_path("assets/scene.txt"))
+fn build_scene(
+    scene_filename: &str,
+) -> Result<(Box<dyn Environment>, Box<FullCamera>), ParseError> {
+    SceneFile::from_path(&parse_path(scene_filename))
 }
 
-fn render() {
-    // set random seed
-
+fn render(scene_filename: &str) {
     let start = Instant::now();
 
-    let width = 1024;
-    let height = 1024;
-
-    let mut scene = match build_scene() {
+    let (mut scene, camera) = match build_scene(scene_filename) {
         Ok(scene) => scene,
         Err(e) => {
             println!("Failed to build scene! {:?}", e);
@@ -117,14 +117,6 @@ fn render() {
         }
     };
     let build_scene_end = Instant::now();
-
-    // "default" camera position
-    let position = Vertex::new(0.0, 3.0, 0.0);
-    let lookat = Vector::new(0.0, 0.5, 1.0).normalised();
-    let up = Vector::new(0.0, lookat.z, -lookat.y);
-    let fov = 40f32.to_radians();
-
-    let camera = FullCamera::new(width, height, fov, position, lookat, up);
 
     let framebuffer = camera.render(scene.as_mut());
     let render_end = Instant::now();

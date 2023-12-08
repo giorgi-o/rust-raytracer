@@ -127,18 +127,17 @@ impl Object for Quadratic {
 
         let Q = T_T * Q * T;
 
-        let (a, b, c, d, e, f, g, h, i, j) = (
-            Q.matrix[0][0],
-            Q.matrix[0][1],
-            Q.matrix[0][2],
-            Q.matrix[0][3],
-            Q.matrix[1][1],
-            Q.matrix[1][2],
-            Q.matrix[1][3],
-            Q.matrix[2][2],
-            Q.matrix[2][3],
-            Q.matrix[3][3],
-        );
+        let a = Q.matrix[0][0];
+        let b = Q.matrix[0][1];
+        let c = Q.matrix[0][2];
+        let d = Q.matrix[0][3];
+        let e = Q.matrix[1][1];
+        let f = Q.matrix[1][2];
+        let g = Q.matrix[1][3];
+        let h = Q.matrix[2][2];
+        let i = Q.matrix[2][3];
+        let j = Q.matrix[3][3];
+
         self.variables = (a, b, c, d, e, f, g, h, i, j);
     }
 }

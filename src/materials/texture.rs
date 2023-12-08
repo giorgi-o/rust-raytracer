@@ -7,7 +7,6 @@ use std::{
 
 use crate::{
     core::{colour::Colour, hit::Hit, tex_coords::TexCoords, vector::Vector},
-    environments::photon_scene::PhotonScene,
     parse_path,
 };
 
@@ -104,8 +103,6 @@ impl Image {
     }
 
     fn get_xy(&self, x: u32, y: u32) -> Colour {
-        // assert!(x < self.width && y < self.height);
-        // let framebuffer_index = y * self.width + x;
         let framebuffer_index =
             (y.rem_euclid(self.height)) * self.width + (x.rem_euclid(self.width));
         self.pixels[framebuffer_index as usize]
@@ -170,6 +167,7 @@ impl Phong for Texture {
     }
 
     fn normal(&self, tex_coords: &TexCoords) -> Option<Vector> {
+        // return None; // tmp
         let Some(normal) = self.normal.as_ref() else {
             return None;
         };

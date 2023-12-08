@@ -41,8 +41,6 @@ impl Vertex {
             matrix[1][0] * self.x + matrix[1][1] * self.y + matrix[1][2] * self.z + matrix[1][3];
         let z =
             matrix[2][0] * self.x + matrix[2][1] * self.y + matrix[2][2] * self.z + matrix[2][3];
-        let w =
-            matrix[3][0] * self.x + matrix[3][1] * self.y + matrix[3][2] * self.z + matrix[3][3];
 
         self.x = x;
         self.y = y;

@@ -97,8 +97,6 @@ impl Object for Plane {
             let u_unit_vector = v_unit_vector.cross(&self.normal).normalised();
             let u = from_center.dot(&u_unit_vector);
             let v = from_center.dot(&v_unit_vector);
-            // let u = (position.x.rem_euclid(1.0).powi(2) + position.y.powi(2)).sqrt();
-            // let v = (position.z.rem_euclid(1.0).powi(2) + position.y.powi(2)).sqrt();
             let tex_coords = TexCoords::new(u, v);
 
             if let Some(normal_map) = self.material.normal(&tex_coords) {

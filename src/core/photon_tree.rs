@@ -1,8 +1,3 @@
-use std::{
-    collections::HashMap,
-    sync::{RwLock, RwLockReadGuard},
-};
-
 use kd_tree::KdTree3;
 
 use super::{photon::Photon, vector::Vector, vertex::Vertex};

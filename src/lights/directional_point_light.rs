@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use rand::{distributions::Uniform, Rng, seq::SliceRandom};
+use rand::seq::SliceRandom;
 
 use crate::{
     core::{
@@ -44,7 +44,7 @@ impl Light for DPLight {
 
     fn get_intensity(&self, surface: &Vertex) -> Option<Colour> {
         // intensity decreases with angle
-        let direction = self.position.vector_to(surface);
+        let direction = self.position.vector_to(surface).normalised();
         let dot = direction.dot(&self.direction);
         Some(self.intensity * dot)
     }
@@ -55,17 +55,13 @@ impl Light for DPLight {
 }
 
 impl PhotonLight for DPLight {
-    fn shoot_regular_photons<'a>(
-        &'a self,
+    fn shoot_regular_photons(
+        &self,
         scene: &PhotonScene,
         num_photons: u32,
         first_thread: bool,
     ) -> Vec<Photon> {
         let mut photons = Vec::with_capacity(num_photons as usize);
-
-        let mut rng = rand::thread_rng();
-        let distribution = Uniform::from(-1.0..1.0);
-
         let start = Instant::now();
 
         for i in 0..num_photons {
@@ -106,10 +102,7 @@ impl PhotonLight for DPLight {
         first_thread: bool,
     ) -> Vec<Photon> {
         let mut photons = Vec::with_capacity(num_photons as usize);
-
         let mut rng = rand::thread_rng();
-        let distribution = Uniform::from(-1.0..1.0);
-
         let start = Instant::now();
 
         for i in 0..num_photons {
@@ -118,7 +111,8 @@ impl PhotonLight for DPLight {
 
             // generate a random offset vector, of length 0.1
             let offset = Vector::random() * 0.1;
-            let direction = caustic_photon.incident + offset;
+            let light_to_photon = self.position.vector_to(&caustic_photon.position);
+            let direction = light_to_photon + offset;
 
             let photon = InFlightPhoton::new(
                 self.position.clone(),

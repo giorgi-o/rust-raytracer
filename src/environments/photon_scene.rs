@@ -1,7 +1,7 @@
-use std::{io::Write, sync::Mutex, thread};
+use std::{io::Write, thread};
 
 use kd_tree::ItemAndDistance;
-use rand::{distributions::Uniform, seq::SliceRandom, Rng};
+use rand::{seq::SliceRandom, Rng};
 
 use crate::{
     core::{
@@ -11,10 +11,9 @@ use crate::{
         photon_tree::PhotonTree,
         ray::Ray,
         vector::Vector,
-        vertex::Vertex,
     },
     lights::light::{Light, PhotonLight},
-    materials::material::{Material, PhotonBehaviour, PhotonMaterial},
+    materials::material::{PhotonBehaviour, PhotonMaterial},
     objects::object::Object,
 };
 
@@ -286,7 +285,7 @@ impl PhotonScene {
             )
         };
 
-        let Some(refract_result) = material.refracted_direction(&hit, ray.direction) else {
+        let Some(refract_result) = material.refracted_direction(hit, ray.direction) else {
             return self.photontrace(reflected_photon());
         };
 
@@ -388,7 +387,7 @@ impl PhotonScene {
         } else {
             &self.regular_photon_map
         };
-        let mut neighbour_photons = photon_map
+        let neighbour_photons = photon_map
             .as_ref()
             .expect("Photon map not built")
             .get_within_distance(&hit.position, 0.1);
@@ -398,16 +397,11 @@ impl PhotonScene {
         }
 
         let neighbour_photons_len = neighbour_photons.len() as f32;
-        let material = hit.material.photon_mapped();
 
         let mut average_ldir = Vector::new(0.0, 0.0, 0.0);
         let mut average_intensity = Colour::black();
 
-        for ItemAndDistance {
-            item: photon,
-            squared_distance,
-        } in neighbour_photons
-        {
+        for ItemAndDistance { item: photon, .. } in neighbour_photons {
             average_ldir += photon.incident.normalised();
             average_intensity += photon.intensity;
         }

@@ -78,7 +78,6 @@ impl Cuboid {
             let backwards = Vector::new(0.0, 0.0, -1.0);
 
             let m = &self.material;
-            //  pub fn new_from_point(point: &Vertex, up: Vector, normal: Vector, material: Arc<dyn Material>)
             CuboidPlanes {
                 right: Plane::new_raw(&bdr, up, right, m.clone()),
                 left: Plane::new_raw(&fdl, up, left, m.clone()),

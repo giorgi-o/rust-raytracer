@@ -1,0 +1,46 @@
+scene Scene
+
+camera Camera
+    position 0.0 0.0 -5.0
+
+# light
+light Directional
+    direction 0.4 -0.6 1.0
+    position 0.0 3.0 0.0
+    colour 3.0
+
+# floor
+# object Plane
+#     point 0.0 0.0 0.0
+#     up 0.0 0.0 1.0
+#     normal 0.0 1.0 0.0
+#     material Simple
+#         colour White
+#         reflectiveness 0.8
+
+# left reflective sphere
+object Sphere
+    centre -2.0 0.0 1.0
+    radius 1.8
+    material Simple
+        colour 0.5 0.0 0.0
+        reflectiveness 1.5
+        shininess 100.0
+
+# right transparent sphere in front of blue cuboid
+object Sphere
+    centre 2.0 0.0 1.0
+    radius 1.8
+    material Transparent
+        colour 0.0 3.0 0.0
+        transparency 0.95
+        ior 1.01
+        shininess 9999999999
+
+# blue cuboid
+object Cuboid
+    corner 3.5 0.5 5.0
+    size 2.5 2.5 2.5
+    material Simple
+        colour 0.0 0.0 1.0
+        reflectiveness 0.0

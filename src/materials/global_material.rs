@@ -26,10 +26,6 @@ impl GlobalMaterial {
 
     #[allow(non_snake_case)]
     fn refraction(&self, hit: &Hit, incoming: Vector) -> Option<RefractionResult> {
-        // resume here, extract mathsy code from below and move here
-        // then call this function from refracted_direction()
-        // then in the scene, handle the cases when the photon or vueon refract or reflect
-
         if self.refract_weight == 0.0 {
             return None;
         }
@@ -49,8 +45,7 @@ impl GlobalMaterial {
 
         let cos_θ_t = (1.0 - (η1 / η2).powi(2) * (1.0 - cos_θ_i.powi(2))).sqrt();
         if cos_θ_t.is_nan() {
-            // total internal reflection
-            return None;
+            return None; // total internal reflection
         }
 
         let T = I * (η1 / η2) - N * (cos_θ_t - (η1 / η2) * cos_θ_i);
@@ -127,7 +122,7 @@ impl PhotonMaterial for GlobalMaterial {
         }
     }
 
-    fn bounced_photon(&self, photon: &Photon, hit: &Hit) -> Option<Colour> {
+    fn bounced_photon(&self, _photon: &Photon, _hit: &Hit) -> Option<Colour> {
         None // probability of photon diffusely bouncing off is 0
     }
 

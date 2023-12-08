@@ -6,7 +6,7 @@ use crate::{
         ray::Ray,
         transform::Transform,
         vector::Vector,
-        vertex::{RichVertex, Vertex},
+        vertex::RichVertex,
     },
     hitvec,
     materials::material::Material,

@@ -1,0 +1,70 @@
+scene Scene
+# scene PhotonScene
+
+camera Camera
+    position 0.0 3.0 0.5
+    lookat 0.0 0.4 1.0
+
+# lights
+light Point
+    position -3.0 4.0 3.0
+    colour White
+
+
+# planes
+
+# floor
+object Plane
+   point 0.0 0.0 0.0
+   up 0.0 0.0 1.0
+   normal 0.0 1.0 0.0
+   material Texture
+        name grass08
+        scale 1.0
+        ambient 0.1
+        shininess 100.0
+
+# back wall
+object Plane
+    point 0.0 0.0 10.0
+    up 0.0 1.0 0.0
+    normal 0.0 0.0 -1.0
+    material Texture
+        name bricks10
+        scale 3.0
+        ambient 0.1
+        shininess 1000000000.0
+
+# left wall
+object Plane
+    point -5.0 0.0 0.0
+    up 0.0 1.0 0.0
+    normal 1.0 0.0 0.0
+    material Texture
+        name bricks10
+        scale 3.0
+        ambient 0.1
+        shininess 100.0
+
+# right wall
+object Plane
+    point 5.0 0.0 0.0
+    up 0.0 1.0 0.0
+    normal -1.0 0.0 0.0
+    material Texture
+        name bricks10
+        scale 3.0
+        ambient 0.1
+        shininess 100.0
+
+
+
+# sphere
+object Sphere
+    centre 0.0 1.2 5.0
+    radius 1.2
+    material Global
+       reflect 1.0
+       refract 1.0
+       ior 1.5
+

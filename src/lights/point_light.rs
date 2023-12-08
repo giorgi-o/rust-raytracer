@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use rand::{distributions::Uniform, Rng, seq::SliceRandom};
+use rand::{distributions::Uniform, seq::SliceRandom, Rng};
 
 use crate::{
     core::{
@@ -103,10 +103,12 @@ impl PhotonLight for PointLight {
         num_photons: u32,
         first_thread: bool,
     ) -> Vec<Photon> {
-        let mut photons = Vec::with_capacity(num_photons as usize);
+        if caustic_photons.is_empty() {
+            return Vec::new();
+        }
 
+        let mut photons = Vec::with_capacity(num_photons as usize);
         let mut rng = rand::thread_rng();
-        let distribution = Uniform::from(-1.0..1.0);
 
         let start = Instant::now();
 

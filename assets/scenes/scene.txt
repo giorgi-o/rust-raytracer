@@ -1,4 +1,9 @@
-scene PhotonScene
+scene Scene
+# scene PhotonScene
+
+camera Camera
+    position 0.0 3.0 0.0
+    lookat 0.0 0.5 1.0
 
 # lights
 
@@ -6,13 +11,13 @@ scene PhotonScene
 # light Directional
 #     direction -1.0 -0.9 1.0
 #     colour 1.0
-# light Point
-#     position 5.0 6.0 0.0
-#     colour White
-light DirPoint
-    position 5.0 6.0 0.0
-    direction 0.0 -1.0 0.0
+light Point
+    position 0.0 4.0 5.0
     colour White
+# light DirPoint
+#     position 0.0 4.0 5.0
+#     direction 0.0 -1.0 0.0
+#     colour 1.0
 
 
 # planes
@@ -71,7 +76,7 @@ object Cuboid
     size 0.7 0.7 0.7
     material Transparent
         colour 1.0 0.0 0.0
-        transparency 0.9
+        transparency 0.6
         ior 1.2
 
 
@@ -92,6 +97,8 @@ object Sphere
 object Cuboid
     corner -0.5 0.0 6.0
     size 2.0 1.0 1.0
-    material Monochrome
-        colour 0.0 0.5 0.5
+    material Texture
+        name marble01
+        scale 1.0
+        ambient 0.1
         shininess 100.0

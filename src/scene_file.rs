@@ -1,7 +1,8 @@
 use std::{collections::HashMap, path::PathBuf, sync::Arc};
 
 use crate::{
-    core::{colour::Colour, vector::Vector, vertex::Vertex},
+    cameras::full_camera::FullCamera,
+    core::{colour::Colour, transform::Transform, vector::Vector, vertex::Vertex},
     environments::{environment::Environment, photon_scene::PhotonScene, scene::Scene},
     lights::{
         directional_light::DirectionalLight, directional_point_light::DPLight, light::Light,
@@ -50,19 +51,14 @@ pub struct SceneFile {
 }
 
 impl SceneFile {
-    pub fn from_path(path: &PathBuf) -> Result<Box<dyn Environment>> {
+    pub fn from_path(path: &PathBuf) -> Result<(Box<dyn Environment>, Box<FullCamera>)> {
         let contents = std::fs::read_to_string(path).expect("Failed to read scene file");
         Self::from_contents(contents)
     }
 
-    pub fn from_contents(contents: String) -> Result<Box<dyn Environment>> {
+    pub fn from_contents(contents: String) -> Result<(Box<dyn Environment>, Box<FullCamera>)> {
         let paragraphs = Paragraph::parse_whole_file(contents)?;
 
-        // let mut scene = for paragraph in paragraphs.iter() {
-        //     if let ParagraphItem::Env(env) = paragraph.get_item()? {
-        //         break env;
-        //     }
-        // };
         let (scenes, paragraphs): (Vec<_>, Vec<_>) =
             paragraphs.into_iter().partition(|p| p.is_scene());
 
@@ -81,12 +77,19 @@ impl SceneFile {
             bail!(paragraph.start_line, "Multiple scenes in file");
         }
 
+        let mut camera = None;
         for paragraph in paragraphs {
             let start_line = paragraph.start_line;
             let item = paragraph.into_item()?;
             match item {
                 ParagraphItem::Light(light) => scene.add_light(light),
                 ParagraphItem::Object(object) => scene.add_object(object),
+                ParagraphItem::Camera(c) => {
+                    if camera.is_some() {
+                        bail!(start_line, "Multiple cameras in file")
+                    }
+                    camera = Some(c)
+                }
                 ParagraphItem::Material(_) => {
                     bail!(start_line, "Cannot add material to scene on its own")
                 }
@@ -96,7 +99,20 @@ impl SceneFile {
             }
         }
 
-        Ok(scene)
+        let camera = camera.unwrap_or_else(|| {
+            let width = 1024;
+            let height = 1024;
+
+            // "default" camera position
+            let position = Vertex::new(0.0, 3.0, 0.0);
+            let lookat = Vector::new(0.0, 0.5, 1.0).normalised();
+            let up = Vector::new(0.0, lookat.z, -lookat.y);
+            let fov = 40f32.to_radians();
+
+            let camera = FullCamera::new(width, height, fov, position, lookat, up);
+            Box::new(camera)
+        });
+        Ok((scene, camera))
     }
 }
 
@@ -189,6 +205,10 @@ impl Paragraph {
 
             let mut words = line.split_whitespace();
             let key = words.next().unwrap();
+            if key.starts_with('#') {
+                continue; // comment
+            }
+
             let words: Vec<&str> = words.collect();
 
             let value = if words.len() == 3 {
@@ -241,6 +261,7 @@ impl Paragraph {
             "object" => Ok(ParagraphItem::Object(self.into_object()?)),
             "material" => Ok(ParagraphItem::Material(self.into_material()?)),
             "scene" => Ok(ParagraphItem::Env(self.into_scene()?)),
+            "camera" => Ok(ParagraphItem::Camera(self.into_camera()?)),
             _ => bail!(self.start_line, "Invalid paragraph kind: {}", self.kind),
         }
     }
@@ -299,31 +320,39 @@ impl Paragraph {
                 self.get_attr("size")?.as_vector()?,
                 self.get_attr("material")?.into_material()?,
             ),
-            "Quadratic" => Quadratic::new(
-                (
-                    self.get_attr_or("a", AttributeValue::Float(0.0))
-                        .as_float()?,
-                    self.get_attr_or("b", AttributeValue::Float(0.0))
-                        .as_float()?,
-                    self.get_attr_or("c", AttributeValue::Float(0.0))
-                        .as_float()?,
-                    self.get_attr_or("d", AttributeValue::Float(0.0))
-                        .as_float()?,
-                    self.get_attr_or("e", AttributeValue::Float(0.0))
-                        .as_float()?,
-                    self.get_attr_or("f", AttributeValue::Float(0.0))
-                        .as_float()?,
-                    self.get_attr_or("g", AttributeValue::Float(0.0))
-                        .as_float()?,
-                    self.get_attr_or("h", AttributeValue::Float(0.0))
-                        .as_float()?,
-                    self.get_attr_or("i", AttributeValue::Float(0.0))
-                        .as_float()?,
-                    self.get_attr_or("j", AttributeValue::Float(0.0))
-                        .as_float()?,
-                ),
-                self.get_attr("material")?.into_material()?,
-            ),
+            "Quadratic" => {
+                let mut quadratic = Quadratic::new(
+                    (
+                        self.get_attr_or("a", AttributeValue::Float(0.0))
+                            .as_float()?,
+                        self.get_attr_or("b", AttributeValue::Float(0.0))
+                            .as_float()?,
+                        self.get_attr_or("c", AttributeValue::Float(0.0))
+                            .as_float()?,
+                        self.get_attr_or("d", AttributeValue::Float(0.0))
+                            .as_float()?,
+                        self.get_attr_or("e", AttributeValue::Float(0.0))
+                            .as_float()?,
+                        self.get_attr_or("f", AttributeValue::Float(0.0))
+                            .as_float()?,
+                        self.get_attr_or("g", AttributeValue::Float(0.0))
+                            .as_float()?,
+                        self.get_attr_or("h", AttributeValue::Float(0.0))
+                            .as_float()?,
+                        self.get_attr_or("i", AttributeValue::Float(0.0))
+                            .as_float()?,
+                        self.get_attr_or("j", AttributeValue::Float(0.0))
+                            .as_float()?,
+                    ),
+                    self.get_attr("material")?.into_material()?,
+                );
+                if let Ok(transform) = self.get_attr("translate") {
+                    let transform = transform.as_vector()?;
+                    let transform = Transform::from_translation(transform);
+                    quadratic.apply_transform(&transform);
+                }
+                quadratic
+            }
             _ => bail!(self.start_line, "Invalid object class: {}", self.class),
         };
         Ok(object)
@@ -334,11 +363,15 @@ impl Paragraph {
             "Simple" => CompoundMaterial::new_simple(
                 self.get_attr("colour")?.as_colour()?,
                 self.get_attr("reflectiveness")?.as_float()?,
+                self.get_attr_or("shininess", AttributeValue::Float(100.0))
+                    .as_float()?,
             ),
             "Transparent" => CompoundMaterial::new_translucent(
                 self.get_attr("colour")?.as_colour()?,
                 self.get_attr("transparency")?.as_float()?,
                 self.get_attr("ior")?.as_float()?,
+                self.get_attr_or("shininess", AttributeValue::Float(100.0))
+                    .as_float()?,
             ),
             "Global" => GlobalMaterial::new(
                 self.get_attr("reflect")?.as_float()?,
@@ -362,6 +395,41 @@ impl Paragraph {
             _ => bail!(self.start_line, "Invalid material class: {}", self.class),
         };
         Ok(material)
+    }
+
+    fn into_camera(mut self) -> Result<Box<FullCamera>> {
+        if self.class != "Camera" {
+            bail!(self.start_line, "Invalid camera class: {}", self.class);
+        }
+
+        let res = self.get_attr_or("res", AttributeValue::Float(1024.0)).value;
+        let width = self.get_attr_or("width", res).as_float()?;
+        let height = self
+            .get_attr_or("height", AttributeValue::Float(width))
+            .as_float()?;
+        let fov = self
+            .get_attr_or("fov", AttributeValue::Float(40.0))
+            .as_float()?
+            .to_radians();
+
+        let position = self
+            .get_attr_or(
+                "position",
+                AttributeValue::Vector(Vector::new(0.0, 0.0, 0.0)),
+            )
+            .as_vertex()?;
+        let lookat = self
+            .get_attr_or("lookat", AttributeValue::Vector(Vector::new(0.0, 0.0, 1.0)))
+            .as_vector()?;
+        let up = self
+            .get_attr_or(
+                "up",
+                AttributeValue::Vector(Vector::new(0.0, lookat.z, -lookat.y)),
+            )
+            .as_vector()?;
+
+        let camera = FullCamera::new(width as u32, height as u32, fov, position, lookat, up);
+        Ok(Box::new(camera))
     }
 
     fn get_attr(&mut self, key: &str) -> Result<Attribute> {
@@ -443,6 +511,7 @@ impl Attribute {
 
 enum ParagraphItem {
     Env(Box<dyn Environment>),
+    Camera(Box<FullCamera>),
     Light(Box<dyn Light>),
     Object(Box<dyn Object>),
     Material(Arc<dyn Material>),
