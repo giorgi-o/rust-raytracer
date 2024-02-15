@@ -92,5 +92,10 @@ impl Object for Sphere {
 
     fn apply_transform(&mut self, transform: &Transform) {
         self.centre.apply_transform(transform);
+
+        // only support uniform scaling for now
+        if transform[0][0] == transform[1][1] && transform[1][1] == transform[2][2] {
+            self.radius *= transform[0][0];
+        }
     }
 }

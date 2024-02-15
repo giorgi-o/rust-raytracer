@@ -1,0 +1,138 @@
+# scene Scene
+scene PhotonScene
+
+camera Camera
+    position 0.0 3.0 0.0
+    lookat 0.0 0.0 1.0
+
+
+# lights
+light DirPoint
+    position 2.0 7.0 2.0
+    direction 0.0 0.0 1.0
+    colour 1.4
+
+
+
+# planes
+
+# floor
+object Plane
+   point 0.0 0.0 0.0
+   up 0.0 0.0 1.0
+   normal 0.0 1.0 0.0
+   material Texture
+        name mio_grass
+        scale 2.0
+        ambient 0.1
+        shininess 100.0
+
+# back wall
+object Plane
+    point 11 0.0 15.0
+    up 0.0 1.0 0.0
+    normal 0.0 0.0 -1.0
+    material Texture
+        name mio_sky
+        scale 33
+        ambient 0.1
+        shininess 1000000000.0
+
+
+# cube left 1
+object Cuboid
+    corner -3.5 3.5 5.0
+    size 1.0 1.0 1.0
+    material Texture
+        name mio_block
+        scale 1.0
+        ambient 0.1
+        shininess 100.0
+
+# cube left 2
+object Cuboid
+    corner -2.5 3.7 5.0
+    size 1.0 1.0 1.0
+    material Texture
+        name mio_block2
+        scale 1.0
+        ambient 0.1
+        shininess 100.0
+
+# coin
+object MarioCoin
+    translate -2.0 5.3 5.2
+    scale 0.5
+    material Monochrome
+        colour 1.0 1.0 0.0
+        ambient 0.1
+        shininess 100.0
+
+# cube right 1
+object Cuboid
+    corner 0.0 3.5 5.0
+    size 1.0 1.0 1.0
+    material Texture
+        name mio_block3
+        scale 1.0
+        ambient 0.1
+        shininess 100.0
+
+# cube right 2
+object Cuboid
+    corner 1.0 3.5 5.0
+    size 1.0 1.0 1.0
+    material Texture
+        name mio_block
+        scale 1.0
+        ambient 0.1
+        shininess 100.0
+
+# cube right 3
+object Cuboid
+    corner 2.0 3.5 5.0
+    size 1.0 1.0 1.0
+    material Texture
+        name mio_block3
+        scale 1.0
+        ambient 0.1
+        shininess 100.0
+
+# teapot
+object Model
+    obj teapot-low.obj
+    scale 0.04
+    translate 1.5 4.5 5.1
+    rotate_teapot 1.0
+    smooth 1.0
+    material FalseColour
+        _ _
+
+# pipe
+object MarioPipe
+    translate 2.5 -1.5 6.0
+    scale 1.1
+    material Monochrome
+        colour 0.0 1.0 0.0
+        ambient 0.1
+        shininess 100.0
+
+# cube floor left 
+object Cuboid
+    corner -2.5 0.0 5.0
+    size 1.0 1.0 1.0
+    material Texture
+        name mio_block3
+        scale 1.0
+        ambient 0.1
+        shininess 100.0
+
+# glass sphere
+object Sphere
+    centre -2.0 2.0 5.6
+    radius 1.0
+    material Global
+       reflect 1.0
+       refract 1.0
+       ior 1.5
+

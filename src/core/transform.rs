@@ -207,3 +207,17 @@ impl std::ops::Mul<Transform> for Transform {
         Self { matrix: result }
     }
 }
+
+impl std::ops::Index<usize> for Transform {
+    type Output = [f32; 4];
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.matrix[index]
+    }
+}
+
+impl std::ops::IndexMut<usize> for Transform {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.matrix[index]
+    }
+}

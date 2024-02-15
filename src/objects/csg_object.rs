@@ -29,12 +29,9 @@ pub struct Csg {
 }
 
 impl Csg {
-    pub fn new(mode: CsgMode, left: impl Object + 'static, right: impl Object + 'static) -> Self {
-        Self {
-            mode,
-            left: Box::new(left),
-            right: Box::new(right),
-        }
+    pub fn new(mode: CsgMode, left: Box<dyn Object>, right: Box<dyn Object>) -> Box<Self> {
+        let this = Self { mode, left, right };
+        Box::new(this)
     }
 }
 

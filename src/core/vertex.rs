@@ -121,6 +121,7 @@ impl RichVertex {
 
         if let Some(normal) = &mut self.normal {
             normal.apply_transform(transform);
+            normal.normalise();
         }
     }
 }

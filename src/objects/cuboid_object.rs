@@ -150,5 +150,12 @@ impl Object for Cuboid {
     fn apply_transform(&mut self, transform: &Transform) {
         self.corner.apply_transform(transform);
         self.planes = OnceLock::new();
+
+        // note: only supports raw scaling, not scaling + rotation
+        self.size = Vector::new(
+            self.size.x * transform[0][0],
+            self.size.y * transform[1][1],
+            self.size.z * transform[2][2],
+        );
     }
 }

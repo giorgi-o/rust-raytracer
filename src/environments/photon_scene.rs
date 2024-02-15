@@ -20,7 +20,7 @@ use crate::{
 use super::environment::{Environment, RaytraceResult};
 
 const PHOTONS_PER_LIGHT: usize = 5_000_000;
-const CAUSTIC_PHOTONS_PER_LIGHT: usize = 1_000_000;
+const CAUSTIC_PHOTONS_PER_LIGHT: usize = 10_000;
 
 pub struct PhotonScene {
     objects: Vec<Box<dyn Object>>,

@@ -109,8 +109,12 @@ impl Image {
     }
 
     fn get_uv(&self, u: f32, v: f32) -> Colour {
-        let x = (u.rem_euclid(1.0) * (self.width - 1) as f32).floor() as u32;
-        let y = (v.rem_euclid(1.0) * (self.height - 1) as f32).floor() as u32;
+        let x = ((-u).rem_euclid(1.0) * (self.width - 1) as f32).floor() as u32;
+
+        // handle nonsquare textures
+        let max_y = self.width as f32 / self.height as f32;
+        let y = ((-v).rem_euclid(1.0) * max_y * (self.height - 1) as f32).floor() as u32;
+
         self.get_xy(x, y)
     }
 

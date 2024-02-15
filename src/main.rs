@@ -73,8 +73,7 @@ fn main() {
     // get txt filename from first argv
     let scene_filename = std::env::args()
         .nth(1)
-        // .unwrap_or("assets/scene.txt".to_string());
-        .unwrap_or("assets/scenes/scene.txt".to_string());
+        .unwrap_or("assets/scenes/scene2.txt".to_string());
 
     // when assets/scene.txt changes, re-render
     let get_last_modified = || {
@@ -85,17 +84,17 @@ fn main() {
     };
 
     loop {
+        let last_modified = get_last_modified();
+
         render(&scene_filename);
         println!("Waiting for changes to {scene_filename}...");
 
-        let last_modified = get_last_modified();
-
         loop {
-            std::thread::sleep(std::time::Duration::from_millis(50));
-
             if get_last_modified() > last_modified {
                 break;
             }
+
+            std::thread::sleep(std::time::Duration::from_millis(50));
         }
     }
 }

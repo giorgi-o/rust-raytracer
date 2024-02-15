@@ -30,6 +30,12 @@ impl Quadratic {
             material,
         })
     }
+
+    pub fn cylinder(diameter: f32, material: Arc<dyn Material>) -> Box<Self> {
+        let radius = diameter / 2.;
+        let a = 1. / radius.powi(2);
+        Self::new((a, 0., 0., 0., 0., 0., 0., a, 0., -1.), material)
+    }
 }
 
 impl Object for Quadratic {
@@ -122,7 +128,7 @@ impl Object for Quadratic {
         let (a, b, c, d, e, f, g, h, i, j) = self.variables;
         let Q = Transform::from_matrix([[a, b, c, d], [b, e, f, g], [c, f, h, i], [d, g, i, j]]);
 
-        let T = T.clone();
+        let T = T.clone().inverse();
         let T_T = T.transposed();
 
         let Q = T_T * Q * T;

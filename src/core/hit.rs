@@ -53,16 +53,16 @@ impl<'s> Hit<'s> {
 }
 
 // stack allocated vector of at most N hits
-const HITVEC_SIZE: u8 = 4;
+const HITVEC_SIZE: u8 = 6;
 pub struct HitVec<'s> {
-    hits: [Option<Hit<'s>>; 4],
+    hits: [Option<Hit<'s>>; HITVEC_SIZE as usize],
     len: u8,
 }
 
 impl<'s> HitVec<'s> {
     pub const fn new() -> Self {
         Self {
-            hits: [None, None, None, None],
+            hits: [None, None, None, None, None, None],
             len: 0,
         }
     }

@@ -11,6 +11,7 @@ use super::{
     global_material::GlobalMaterial,
     material::{Material, PhotonBehaviour, PhotonMaterial, RefractionResult},
     phong_material::Monochrome,
+    texture::Texture,
 };
 
 pub struct CompoundMaterial {
@@ -59,6 +60,17 @@ impl CompoundMaterial {
 
         let mut compound = Self::new();
         compound.add_material(phong);
+        compound.add_material(global);
+        Arc::new(compound)
+    }
+
+    pub fn new_textured(texture: String, scale: f32, transparency: f32) -> Arc<Self> {
+        let texture = Texture::import(texture.to_string(), scale, 0.1, 1000000.0);
+        // let texture = Arc::new(FalseColour::new());
+        let global = GlobalMaterial::new(transparency, transparency, 1.0);
+
+        let mut compound = Self::new();
+        compound.add_material(texture);
         compound.add_material(global);
         Arc::new(compound)
     }

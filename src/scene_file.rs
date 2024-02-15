@@ -14,7 +14,12 @@ use crate::{
         texture::Texture,
     },
     objects::{
-        cuboid_object::Cuboid, object::Object, plane_object::Plane, quadratic_object::Quadratic,
+        csg_object::{Csg, CsgMode},
+        cuboid_object::Cuboid,
+        object::Object,
+        plane_object::Plane,
+        polymesh_object::PolyMesh,
+        quadratic_object::Quadratic,
         sphere_object::Sphere,
     },
 };
@@ -353,6 +358,149 @@ impl Paragraph {
                 }
                 quadratic
             }
+            "Model" => {
+                let obj_path = self.get_attr("obj")?.as_word()?;
+                let obj_path = PathBuf::from("assets").join("models").join(obj_path);
+                let mut model = PolyMesh::from_obj_file(
+                    obj_path,
+                    self.get_attr("material")?.into_material()?,
+                    self.get_attr_or("smooth", AttributeValue::Float(0.0))
+                        .as_float()?
+                        != 0.0,
+                );
+
+                // tmp: special fix for teapot model
+                if self.get_attr("rotate_teapot").is_ok() {
+                    // rotate the teapot by 90 degrees
+                    let rotation = Transform::from_rotation_matrix([
+                        [1.0, 0.0, 0.0],
+                        [0.0, 0.0, 1.0],
+                        [0.0, -1.0, 0.0],
+                    ]);
+                    model.apply_transform(&rotation);
+                }
+
+                let mut transform = Transform::identity();
+
+                if let Some(translate) = self.attributes.remove("translate") {
+                    let translate = translate.as_vector()?;
+                    transform[3][0] = translate.x;
+                    transform[3][1] = translate.y;
+                    transform[3][2] = translate.z;
+                }
+
+                if let Some(scale) = self.attributes.remove("scale") {
+                    let scale = scale.as_float()?;
+                    transform[0][0] = scale;
+                    transform[1][1] = scale;
+                    transform[2][2] = scale;
+                }
+
+                model.apply_transform(&transform.transposed());
+
+                Box::new(model)
+            }
+            "MarioPipe" => {
+                let material = self.get_attr("material")?.into_material()?;
+
+                let main_cylinder =
+                    // Quadratic::new((4., 0., 0., 0., 0., 0., 0., 4., 0., -1.), material.clone());
+                    Quadratic::cylinder(1., material.clone());
+                let main_cylinder_box = Cuboid::new(
+                    Vertex::new(-0.5, 0., -0.5),
+                    Vector::new(1.0, 3.0, 1.0),
+                    material.clone(),
+                );
+                let main_cylinder =
+                    Csg::new(CsgMode::Intersection, main_cylinder, main_cylinder_box);
+
+                let top_cylinder = Quadratic::cylinder(1.3, material.clone());
+                let top_cylinder_box = Cuboid::new(
+                    Vertex::new(-0.7, 2.7, -0.7),
+                    Vector::new(1.3, 0.3, 1.3),
+                    material.clone(),
+                );
+                let top_cylinder = Csg::new(CsgMode::Intersection, top_cylinder, top_cylinder_box);
+                let mut pipe = Csg::new(CsgMode::Union, main_cylinder, top_cylinder);
+
+                // thin black sphere slice on the top to give the illusion of a hole
+                let black_hole = Sphere::new(
+                    Vertex::new(0., 3., 0.),
+                    0.5,
+                    Monochrome::new(Colour::black(), 0.1, 100000000.0),
+                );
+                let black_hole_box = Cuboid::new(
+                    Vertex::new(-0.5, 3.0, -0.5),
+                    Vector::new(1.0, 0.0001, 1.0),
+                    Monochrome::new(Colour::black(), 0.1, 100000000.0),
+                );
+                let black_hole = Csg::new(CsgMode::Intersection, black_hole, black_hole_box);
+                pipe = Csg::new(CsgMode::Union, pipe, black_hole);
+
+                let mut transform = Transform::identity();
+                if let Some(scale) = self.attributes.remove("scale") {
+                    let scale = scale.as_float()?;
+                    transform[0][0] = scale;
+                    transform[1][1] = scale;
+                    transform[2][2] = scale;
+                }
+                if let Some(translate) = self.attributes.remove("translate") {
+                    let translate = translate.as_vector()?;
+                    transform[3][0] = translate.x;
+                    transform[3][1] = translate.y;
+                    transform[3][2] = translate.z;
+                }
+                pipe.apply_transform(&transform.transposed());
+                pipe
+            }
+            "MarioCoin" => {
+                let material = self.get_attr("material")?.into_material()?;
+
+                let coin = Sphere::new(Vertex::new(0., 0., 0.), 0.5, material.clone());
+                let coin_box = Cuboid::new(
+                    Vertex::new(-0.5, -0.5, -0.1),
+                    Vector::new(1., 1., 0.2),
+                    material.clone(),
+                );
+                let mut coin = Csg::new(CsgMode::Intersection, coin, coin_box);
+
+                // shallow part
+                let shallow_part = Sphere::new(Vertex::new(0., 0., 0.), 0.4, material.clone());
+                let shallow_part_box = Cuboid::new(
+                    Vertex::new(-0.4, -0.4, -0.11),
+                    Vector::new(0.8, 0.8, 0.03),
+                    material.clone(),
+                );
+                let shallow_part = Csg::new(CsgMode::Intersection, shallow_part, shallow_part_box);
+                coin = Csg::new(CsgMode::Difference, coin, shallow_part);
+
+                // line decoration
+                let line = Cuboid::new(
+                    Vertex::new(-0.08, -0.28, -0.1),
+                    Vector::new(0.16, 0.56, 0.05),
+                    material.clone(),
+                );
+                coin = Csg::new(CsgMode::Difference, coin, line);
+
+                if let Some(scale) = self.attributes.remove("scale") {
+                    let scale = scale.as_float()?;
+                    let mut transform = Transform::identity();
+                    transform[0][0] = scale;
+                    transform[1][1] = scale;
+                    transform[2][2] = scale;
+                    coin.apply_transform(&transform.transposed());
+                }
+                if let Some(translate) = self.attributes.remove("translate") {
+                    let mut transform = Transform::identity();
+                    let translate = translate.as_vector()?;
+                    transform[3][0] = translate.x;
+                    transform[3][1] = translate.y;
+                    transform[3][2] = translate.z;
+                    coin.apply_transform(&transform.transposed());
+                }
+
+                coin
+            }
             _ => bail!(self.start_line, "Invalid object class: {}", self.class),
         };
         Ok(object)
@@ -390,6 +538,11 @@ impl Paragraph {
                 self.get_attr("scale")?.as_float()?,
                 self.get_attr("ambient")?.as_float()?,
                 self.get_attr("shininess")?.as_float()?,
+            ),
+            "TransparentTexture" => CompoundMaterial::new_textured(
+                self.get_attr("name")?.as_word()?,
+                self.get_attr("scale")?.as_float()?,
+                self.get_attr("transparency")?.as_float()?,
             ),
             "FalseColour" => Arc::new(FalseColour::new()),
             _ => bail!(self.start_line, "Invalid material class: {}", self.class),
